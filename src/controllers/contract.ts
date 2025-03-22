@@ -8,7 +8,6 @@ class ContractController {
   public async list(req: Request, res: Response) {
     const contractRepository = getRepo(Contract);
     const userRepo = getRepo(User);
-    console.log(res.locals.user);
 
     try {
       const user = await userRepo.findOne({
@@ -142,8 +141,6 @@ class ContractController {
   }
 
   public async update(req: Request, res: Response) {
-    console.log("update");
-
     const validator = new Validator(req.body, {
       id: "numeric|required",
       authorEmail: "email",
@@ -190,11 +187,22 @@ class ContractController {
       return;
     }
     const contractRepository = getRepo(Contract);
+    const userRepository = getRepo(User);
 
     try {
       const contract = await contractRepository.findOneBy({
         id: contractData.id,
       });
+
+      const contractUser = contract.user;
+      const user = await userRepository.findOneBy({
+        id: res.locals.user.id,
+      });
+
+      if (contractUser.id !== user.id) {
+        res.status(403).send("You are not allowed to update this contract.");
+        return;
+      }
 
       if (!contract) {
         res.status(404).send("Contract not found.");
@@ -222,11 +230,22 @@ class ContractController {
     }
 
     const contractRepository = getRepo(Contract);
+    const userRepository = getRepo(User);
 
     try {
       const contract = await contractRepository.findOneBy({
         id: req.body.id,
       });
+
+      const contractUser = contract.user;
+      const user = await userRepository.findOneBy({
+        id: res.locals.user.id,
+      });
+
+      if (contractUser.id !== user.id) {
+        res.status(403).send("You are not allowed to delete this contract.");
+        return;
+      }
 
       if (!contract) {
         res.status(404).send("Contract not found.");
