@@ -24,7 +24,7 @@ class AuthController {
       // Check if user exists
       const user = await userRepository.findOne({ where: { email } });
       if (!user) {
-        res.status(400).send("Invalid credentials.");
+        res.status(400).send({ error: "Vos identifiants sont incorrects." });
         return;
       }
 
@@ -35,7 +35,7 @@ class AuthController {
       );
 
       if (!isPasswordValid) {
-        res.status(400).send("Vos identifiants sont incorrects.");
+        res.status(400).send({ error: "Vos identifiants sont incorrects." });
         return;
       }
 
@@ -48,7 +48,9 @@ class AuthController {
       });
     } catch (error) {
       console.log(error);
-      res.status(500).send("Error logging in.");
+      res.status(500).send({
+        error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
+      });
     }
   }
 
@@ -57,26 +59,60 @@ class AuthController {
       email: "required|email",
       fullname: "string|required",
       password: "string|required",
+      birthday: "date|required",
+      bornLocation: "string|required",
+      department: "string|required",
+      orderNumber: "numeric|required",
+      personalAdress: "string|required",
+      officeAdress: "string",
+      status: "string|required",
+      phoneNumber: "string|required",
+      gender: "string|required",
     });
 
     if (validator.fails()) res.status(400).send(validator.errors.all());
 
-    const { fullname, email, password } = req.body;
+    const {
+      fullname,
+      email,
+      password,
+      birthday,
+      bornLocation,
+      department,
+      orderNumber,
+      personalAdress,
+      officeAdress,
+      status,
+      phoneNumber,
+      gender,
+    } = req.body;
     const userRepository = getRepo(User);
 
     try {
       // Check if user already exists
       const existingUser = await userRepository.findOne({ where: { email } });
       if (existingUser) {
-        res.status(400).send("User already exists.");
+        res.status(400).send({
+          error:
+            "Un compte avec l'addresse email que vous avez renseigner existe déjà, veuillez vous connecté.",
+        });
         return;
       }
 
-      // Create a new user
-      const user = new User();
-      user.email = email;
-      user.password = await UtilsAuthentication.hash(password);
-      user.fullname = fullname;
+      const user = userRepository.create({
+        email,
+        password: await UtilsAuthentication.hash(password),
+        fullname,
+        birthday,
+        bornLocation,
+        department,
+        orderNumber,
+        personalAdress,
+        officeAdress,
+        status,
+        phoneNumber,
+        gender,
+      });
 
       // Save the user to the database
       await userRepository.save(user);
@@ -88,14 +124,18 @@ class AuthController {
     } catch (error) {
       console.log(error);
 
-      res.status(500).send("Error registering user.");
+      res.status(500).send({
+        error: "Une erreur s'est produite, veuillez réesayer ultérieurement",
+      });
     }
   }
 
   public async me(req: Request, res: Response): Promise<void> {
     const bearer = UtilsAuthentication.getBearerToken(req);
     if (!bearer) {
-      res.status(400).send("token invalide, veuillez vous reconnecté.");
+      res
+        .status(400)
+        .send({ error: "token invalide, veuillez vous reconnecté." });
       return;
     }
 
