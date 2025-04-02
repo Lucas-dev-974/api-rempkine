@@ -19,8 +19,8 @@ export class Contract {
   @Column()
   authorName: string;
 
-  @Column({ type: "enum", enum: ["professional", "student"] })
-  authorStatut: "professional" | "student";
+  @Column({ type: "enum", enum: ["professionnal", "student"] })
+  authorStatut: "professionnal" | "student";
 
   @Column()
   startDate: string;
