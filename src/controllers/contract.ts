@@ -3,6 +3,7 @@ import { getRepo } from "../data-source";
 import Validator from "validatorjs";
 import { Contract } from "../database/entity/Contract";
 import { User } from "../database/entity/User";
+import { Like } from "typeorm";
 
 class ContractController {
   public async list(req: Request, res: Response) {
@@ -60,8 +61,9 @@ class ContractController {
     });
 
     if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
-      return;
+      return res.status(400).send({
+        error: "Des champs obligatoires sont manquants",
+      });
     }
 
     const {
@@ -258,6 +260,34 @@ class ContractController {
     } catch (error) {
       console.log(error);
       res.status(500).send("Error deleting contract.");
+    }
+  }
+
+  public async search(req: Request, res: Response) {
+    const validator = new Validator(req.query, { q: "string" });
+    if (validator.fails()) {
+      res.status(400).send(validator.errors.all());
+      return;
+    }
+
+    const query = req.query.q;
+    let where = [];
+
+    if (query || query != "") {
+      where = [
+        { replacedName: Like(`%${query}%`) }, // Recherche partielle sur replacedName
+        { substituteName: Like(`%${query}%`) }, // Recherche partielle sur substituteName
+      ];
+    }
+    const contractRepository = getRepo(Contract);
+
+    try {
+      const contracts = await contractRepository.find({ where });
+
+      res.status(200).send(contracts);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send("Error searching for contracts.");
     }
   }
 }
