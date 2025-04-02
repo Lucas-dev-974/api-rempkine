@@ -31,8 +31,17 @@ export class User {
   @Column({ nullable: true })
   personalAdress: string;
 
+  @Column({ nullable: true })
+  officeAdress: string;
+
+  @Column({ nullable: true })
+  phoneNumber: string;
+
   @Column({ type: "enum", enum: ["student", "professionnal"], nullable: true })
   status: "student" | "professionnal";
+
+  @Column({ type: "enum", enum: ["male", "female"], nullable: true })
+  gender: "male" | "female";
 
   @OneToMany(() => UserContract, (userContracts) => userContracts.user)
   userContracts: UserContract[];
