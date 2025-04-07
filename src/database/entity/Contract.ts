@@ -19,9 +19,6 @@ export class Contract {
   @Column()
   authorName: string;
 
-  @Column({ type: "enum", enum: ["professionnal", "student"] })
-  authorStatut: "professionnal" | "student";
-
   @Column()
   startDate: string;
 
@@ -34,7 +31,7 @@ export class Contract {
   @Column()
   percentReturnToSubstituteBeforeDate: Date;
 
-  @Column()
+  @Column({ nullable: true })
   nonInstallationRadius: number;
 
   @Column()
@@ -51,8 +48,9 @@ export class Contract {
 
   @ManyToOne(() => User, (user) => user.userContracts, {
     onDelete: "CASCADE",
+    nullable: true,
   })
-  user: User;
+  user: User | null;
 
   // ------------------- Replaced kinesitherapist -------------------
   @Column({ type: "enum", enum: ["male", "female"] })
@@ -100,4 +98,10 @@ export class Contract {
 
   @Column()
   substituteOrderDepartmentNumber: number;
+
+  @Column({ default: () => "CURRENT_TIMESTAMP" })
+  createdAt: Date;
+
+  @Column({ default: true })
+  isPublic: boolean;
 }
