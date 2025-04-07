@@ -12,7 +12,7 @@ class ContractController {
 
     try {
       const user = await userRepo.findOne({
-        where: { id: res.locals.user.id },
+        where: [{ id: res.locals.user.id }, { isPublic: true }],
       });
 
       const contracts = await contractRepository.find({
@@ -30,7 +30,6 @@ class ContractController {
     const validator = new Validator(req.body, {
       authorEmail: "required|email",
       authorName: "required|string",
-      authorStatut: "required|string",
       startDate: "required|date",
       endDate: "required|date",
       percentReturnToSubstitute: "required|numeric",
@@ -69,7 +68,6 @@ class ContractController {
     const {
       authorEmail,
       authorName,
-      authorStatut,
       startDate,
       endDate,
       percentReturnToSubstitute,
@@ -104,7 +102,6 @@ class ContractController {
       const contract = contractRepository.create({
         authorEmail,
         authorName,
-        authorStatut,
         startDate,
         endDate,
         percentReturnToSubstitute,
@@ -134,7 +131,6 @@ class ContractController {
         user: res.locals.user,
       });
       await contractRepository.save(contract);
-
       res.status(201).send(contract);
     } catch (error) {
       console.log(error);
@@ -275,8 +271,9 @@ class ContractController {
 
     if (query || query != "") {
       where = [
-        { replacedName: Like(`%${query}%`) }, // Recherche partielle sur replacedName
-        { substituteName: Like(`%${query}%`) }, // Recherche partielle sur substituteName
+        { replacedName: Like(`%${query}%`) },
+        { substituteName: Like(`%${query}%`) },
+        { isPublic: true },
       ];
     }
     const contractRepository = getRepo(Contract);
