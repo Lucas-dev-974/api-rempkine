@@ -40,4 +40,13 @@ export class UtilsAuthentication {
   static getBearerToken(req: Request): string {
     return req.headers.authorization?.split(" ")[1] ?? "";
   }
+
+  static async generateRandomNumber(repo: any): Promise<number> {
+    const randomNumber = Math.floor(Math.random() * 1000000);
+    const entityExist = await repo.findOneBy({ id: randomNumber });
+    if (entityExist) {
+      return this.generateRandomNumber(repo);
+    }
+    return randomNumber;
+  }
 }
