@@ -1,47 +1,42 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToOne,
-} from "typeorm";
+import { Entity, Column, OneToMany, ManyToOne, ManyToMany } from "typeorm";
 import { UserContract } from "./UserContract";
 import { User } from "./User";
+import { Signature } from "./Signature";
 
 @Entity()
 export class Contract {
-  @PrimaryGeneratedColumn()
+  @Column({ primary: true, generated: false })
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   authorEmail: string;
 
-  @Column()
+  @Column({ nullable: true })
   authorName: string;
 
-  @Column()
+  @Column({ nullable: true })
   startDate: string;
 
-  @Column()
-  endDate: Date;
+  @Column({ nullable: true })
+  endDate: string;
 
-  @Column()
+  @Column({ nullable: true })
   percentReturnToSubstitute: number;
 
-  @Column()
-  percentReturnToSubstituteBeforeDate: Date;
+  @Column({ nullable: true })
+  percentReturnToSubstituteBeforeDate: string;
 
   @Column({ nullable: true })
   nonInstallationRadius: number;
 
-  @Column()
+  @Column({ nullable: true })
   conciliationCDOMK: string;
 
-  @Column()
+  @Column({ nullable: true })
   doneAtLocation: string;
 
-  @Column()
-  doneAtDate: Date;
+  @Column({ nullable: true })
+  doneAtDate: string;
 
   @OneToMany(() => UserContract, (userContract) => userContract.contract)
   contractUsers: UserContract[];
@@ -53,50 +48,50 @@ export class Contract {
   user: User | null;
 
   // ------------------- Replaced kinesitherapist -------------------
-  @Column({ type: "enum", enum: ["male", "female"] })
+  @Column({ type: "enum", enum: ["male", "female"], nullable: true })
   replacedGender: "male" | "female";
 
-  @Column()
+  @Column({ nullable: true })
   replacedEmail: string;
 
-  @Column()
+  @Column({ nullable: true })
   replacedName: string;
 
-  @Column()
+  @Column({ nullable: true })
   replacedBirthday: Date;
 
-  @Column()
+  @Column({ nullable: true })
   replacedBirthdayLocation: string;
 
-  @Column()
+  @Column({ nullable: true })
   replacedOrderDepartement: string;
 
-  @Column()
+  @Column({ nullable: true })
   replacedOrderDepartmentNumber: number;
 
-  @Column()
+  @Column({ nullable: true })
   replacedProfessionnalAddress: string;
 
   // ------------------- Substitute kinesitherapist -------------------
-  @Column({ type: "enum", enum: ["male", "female"] })
+  @Column({ type: "enum", enum: ["male", "female"], nullable: true })
   substituteGender: "male" | "female";
 
-  @Column()
+  @Column({ nullable: true })
   substituteEmail: string;
 
-  @Column()
+  @Column({ nullable: true })
   substituteName: string;
 
-  @Column()
+  @Column({ nullable: true })
   substituteBirthday: Date;
 
-  @Column()
+  @Column({ nullable: true })
   substituteBirthdayLocation: string;
 
-  @Column()
+  @Column({ nullable: true })
   substituteOrderDepartement: string;
 
-  @Column()
+  @Column({ nullable: true })
   substituteOrderDepartmentNumber: number;
 
   @Column({ default: () => "CURRENT_TIMESTAMP" })
@@ -104,4 +99,10 @@ export class Contract {
 
   @Column({ default: true })
   isPublic: boolean;
+
+  @Column({ nullable: true })
+  replacedSignatureDataUrl: string;
+
+  @Column({ nullable: true })
+  substituteSignatureDataUrl: string;
 }
