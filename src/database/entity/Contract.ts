@@ -1,8 +1,6 @@
 import { Entity, Column, OneToMany, ManyToOne, ManyToMany } from "typeorm";
 import { UserContract } from "./UserContract";
 import { User } from "./User";
-import { Signature } from "./Signature";
-
 @Entity()
 export class Contract {
   @Column({ primary: true, generated: false })
