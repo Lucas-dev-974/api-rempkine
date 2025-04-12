@@ -146,8 +146,6 @@ class ContractController {
     let userField = {};
     if (res.locals.user) userField = { user: res.locals.user };
 
-    let fileName = null;
-
     try {
       const id = await UtilsAuthentication.generateRandomNumber(
         contractRepository
@@ -182,7 +180,6 @@ class ContractController {
         substituteOrderDepartement,
         substituteOrderDepartmentNumber,
 
-        replacedSignaturePath: fileName,
         replacedSignatureDataUrl,
         substituteSignatureDataUrl,
         ...userField,
@@ -228,6 +225,9 @@ class ContractController {
       substituteBirthdayLocation: "string",
       substituteOrderDepartement: "string",
       substituteOrderDepartmentNumber: "numeric",
+
+      replacedSignatureDataUrl: "string",
+      substituteSignatureDataUrl: "string",
     });
 
     if (validator.fails()) {
