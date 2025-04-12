@@ -1,9 +1,18 @@
 import { Request, Response } from "express-serve-static-core";
+import fs from "fs";
+import path from "path";
+
+// Extend the Request interface to include the 'files' property
+interface MulterRequest extends Request {
+  files?: Express.Multer.File[];
+}
+
 import { getRepo } from "../data-source";
 import Validator from "validatorjs";
 import { Contract } from "../database/entity/Contract";
 import { User } from "../database/entity/User";
-import { Like } from "typeorm";
+import { In, Like } from "typeorm";
+import { UtilsAuthentication } from "../utils/auth.util";
 
 class ContractController {
   public async list(req: Request, res: Response) {
@@ -26,37 +35,70 @@ class ContractController {
     }
   }
 
+  public async listFromIDS(req: Request, res: Response) {
+    // todo: check contracts expiration date (3 months) if > 3: contract.public = false
+    let { ids } = req.query;
+    let finalIDS = [];
+
+    if (!ids) ids = [];
+    if (typeof ids === "string") {
+      finalIDS = ids
+        .split(",")
+        .map((id) => parseInt(id.trim()))
+        .filter((id) => !isNaN(id));
+    } else if (!Array.isArray(ids)) {
+      ids = [];
+    }
+
+    const contractRepository = getRepo(Contract);
+    try {
+      const contracts = await contractRepository.findBy({ id: In(finalIDS) });
+      res.status(200).send(contracts);
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(
+          "Une erreur s'est produite lors de la récupération des contrats, veuillez réessayer plus tard."
+        );
+      console.log("files:", (req as MulterRequest).files);
+    }
+  }
+
   public async create(req: Request, res: Response) {
     const validator = new Validator(req.body, {
-      authorEmail: "required|email",
-      authorName: "required|string",
-      startDate: "required|date",
-      endDate: "required|date",
-      percentReturnToSubstitute: "required|numeric",
-      percentReturnToSubstituteBeforeDate: "required|date",
-      nonInstallationRadius: "required|numeric",
-      conciliationCDOMK: "required|string",
-      doneAtLocation: "required|string",
-      doneAtDate: "required|date",
+      authorEmail: "email",
+      authorName: "string",
+      startDate: "date",
+      endDate: "date",
+      percentReturnToSubstitute: "numeric",
+      percentReturnToSubstituteBeforeDate: "date",
+      nonInstallationRadius: "numeric",
+      conciliationCDOMK: "string",
+      doneAtLocation: "string",
+      doneAtDate: "date",
 
       // ------------------- Replaced kinesitherapist -------------------
-      replacedGender: "required|string",
-      replacedEmail: "required|email",
-      replacedName: "required|string",
-      replacedBirthday: "required|date",
-      replacedBirthdayLocation: "required|string",
-      replacedOrderDepartement: "required|string",
-      replacedOrderDepartmentNumber: "required|numeric",
-      replacedProfessionnalAddress: "required|string",
+      replacedGender: "string",
+      replacedEmail: "email",
+      replacedName: "string",
+      replacedBirthday: "date",
+      replacedBirthdayLocation: "string",
+      replacedOrderDepartement: "string",
+      replacedOrderDepartmentNumber: "numeric",
+      replacedProfessionnalAddress: "string",
 
       // ------------------- Substitute kinesitherapist -------------------
-      substituteGender: "required|string",
-      substituteEmail: "required|email",
-      substituteName: "required|string",
-      substituteBirthday: "required|date",
-      substituteBirthdayLocation: "required|string",
-      substituteOrderDepartement: "required|string",
-      substituteOrderDepartmentNumber: "required|numeric",
+      substituteGender: "string",
+      substituteEmail: "email",
+      substituteName: "string",
+      substituteBirthday: "date",
+      substituteBirthdayLocation: "string",
+      substituteOrderDepartement: "string",
+      substituteOrderDepartmentNumber: "numeric",
+
+      replacedSignatureDataUrl: "string",
+      substituteSignatureDataUrl: "string",
     });
 
     if (validator.fails()) {
@@ -94,12 +136,24 @@ class ContractController {
       substituteBirthdayLocation,
       substituteOrderDepartement,
       substituteOrderDepartmentNumber,
+
+      replacedSignatureDataUrl,
+      substituteSignatureDataUrl,
     } = req.body;
 
     const contractRepository = getRepo(Contract);
 
+    let userField = {};
+    if (res.locals.user) userField = { user: res.locals.user };
+
+    let fileName = null;
+
     try {
+      const id = await UtilsAuthentication.generateRandomNumber(
+        contractRepository
+      );
       const contract = contractRepository.create({
+        id,
         authorEmail,
         authorName,
         startDate,
@@ -128,7 +182,10 @@ class ContractController {
         substituteOrderDepartement,
         substituteOrderDepartmentNumber,
 
-        user: res.locals.user,
+        replacedSignaturePath: fileName,
+        replacedSignatureDataUrl,
+        substituteSignatureDataUrl,
+        ...userField,
       });
       await contractRepository.save(contract);
       res.status(201).send(contract);
@@ -216,7 +273,6 @@ class ContractController {
       res.status(500).send("Error deleting contract.");
     }
   }
-
   public async delete(req: Request, res: Response) {
     const validator = new Validator(req.body, {
       id: "numeric|required",
