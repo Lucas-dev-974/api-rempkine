@@ -1,11 +1,9 @@
 import { Request, Response } from "express-serve-static-core";
-import fs from "fs";
-import path from "path";
 
-// Extend the Request interface to include the 'files' property
-interface MulterRequest extends Request {
-  files?: Express.Multer.File[];
-}
+// // Extend the Request interface to include the 'files' property
+// interface MulterRequest extends Request {
+//   files?: Express.Multer.File[];
+// }
 
 import { getRepo } from "../data-source";
 import Validator from "validatorjs";
@@ -93,7 +91,6 @@ class ContractController {
         .send(
           "Une erreur s'est produite lors de la récupération des contrats, veuillez réessayer plus tard."
         );
-      console.log("files:", (req as MulterRequest).files);
     }
   }
 
