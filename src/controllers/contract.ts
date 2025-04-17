@@ -15,6 +15,38 @@ import { In, Like } from "typeorm";
 import { UtilsAuthentication } from "../utils/auth.util";
 
 class ContractController {
+  public async getOne(req: Request, res: Response) {
+    const { id } = req.query;
+
+    if (!id) {
+      res.status(400).send("ID contrat requis");
+      return;
+    }
+
+    const contractRepository = getRepo(Contract);
+    const userRepo = getRepo(User);
+
+    try {
+      const contract = await contractRepository.findOneBy({ id });
+
+      if (!contract) {
+        res.status(404).send("Le contrat n'existe pas.");
+        return;
+      }
+
+      // const user = await userRepo.findOneBy({ id: res.locals.user.id });
+      // if (user.id !== contract.user.id) {
+      //   res.status(403).send("You are not allowed to access this contract.");
+      //   return;
+      // }
+
+      res.status(200).send(contract);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send("Une erreur s'est produite, veuillez réessayer.");
+    }
+  }
+
   public async list(req: Request, res: Response) {
     const contractRepository = getRepo(Contract);
     const userRepo = getRepo(User);

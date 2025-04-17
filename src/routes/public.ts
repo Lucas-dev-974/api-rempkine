@@ -4,4 +4,5 @@ export default [
   { method: "POST", path: "/api/auth/" },
   { method: "POST", path: "/api/contract/" },
   { method: "GET", path: "/api/contract/list-ids" },
+  { method: "GET", path: "/api/contract/one" },
 ];

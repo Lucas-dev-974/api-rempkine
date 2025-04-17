@@ -8,5 +8,6 @@ ContractRouter.post("/", contractController.create);
 ContractRouter.patch("/", contractController.update);
 ContractRouter.get("/search", contractController.search);
 ContractRouter.get("/list-ids", contractController.listFromIDS);
+ContractRouter.get("/one", contractController.getOne);
 
 export default ContractRouter;
