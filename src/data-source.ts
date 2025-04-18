@@ -10,9 +10,9 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE,
   synchronize: true,
   logging: false,
-  entities: ["src/database/entity/**/*.ts"],
-  migrations: ["src/database/migration/**/*.ts"],
-  subscribers: ["src/database/subscriber/**/*.ts"],
+  entities: ["build/database/entity/**/*.js"],
+  // migrations: ["src/database/migration/**/*.ts"],
+  // subscribers: ["src/database/subscriber/**/*.ts"],
 });
 
 export function getRepo(entity: any) {
