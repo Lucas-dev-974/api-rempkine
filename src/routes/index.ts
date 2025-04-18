@@ -4,7 +4,7 @@ import ContractRouter from "./contract";
 
 export function setRoutes(app: Application): void {
   app.get("/", (req: Request, res: Response) => {
-    res.send("rempkiné api server.");
+    res.send("rempkiné  server api.");
   });
 
   app.use("/api/auth", AuthRouter);
