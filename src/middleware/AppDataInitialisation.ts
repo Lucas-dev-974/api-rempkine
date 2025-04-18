@@ -19,8 +19,15 @@ export class AppDataInitialisation {
         }\n`;
         fs.appendFileSync(logFilePath, logMessage, { encoding: "utf8" });
         console.log(error);
+        const detailedError = {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: (error as any).code || "UNKNOWN_ERROR",
+        };
         res.send({
           error: "error database",
+          details: detailedError,
           type: process.env.DB_TYPE as any,
           host: process.env.DB_HOST,
           port: parseInt(process.env.DB_PORT || "5432", 10),
