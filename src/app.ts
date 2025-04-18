@@ -31,7 +31,15 @@ app.use(JWTMiddleware.checkBearerToken);
 // Middleware pour vérifier la connexion à la base de données
 app.use((req, res, next) => {
   if (!AppDataSource.isInitialized) {
-    return res.status(503).json({ message: "Database not initialized" });
+    return res.status(503).json({
+      message: "Database not initialized",
+      type: process.env.DB_TYPE as any,
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || "5432", 10),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+    });
   }
   next();
 });
