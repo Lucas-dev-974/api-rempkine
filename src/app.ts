@@ -10,7 +10,9 @@ import { JWTMiddleware } from "./middleware/JWT.middleware";
 import cors from "cors";
 
 AppDataSource.initialize()
-  .then(async () => {})
+  .then(async () => {
+    console.log("Database connection established successfully.");
+  })
   .catch((error) => console.log(error));
 
 const app = express();
