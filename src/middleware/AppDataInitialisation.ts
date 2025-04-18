@@ -19,6 +19,7 @@ export class AppDataInitialisation {
         }\n`;
         fs.appendFileSync(logFilePath, logMessage, { encoding: "utf8" });
         console.log(error);
+        res.send("error database");
       });
   }
 }
