@@ -42,14 +42,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(JWTMiddleware.checkBearerToken);
 
-// Middleware pour vérifier la connexion à la base de données
-app.use((req, res, next) => {
-  if (!AppDataSource.isInitialized) {
-    return res.status(503).json({ message: "Database not initialized" });
-  }
-  next();
-});
-
 setRoutes(app);
 
 app.listen(PORT, () => {
