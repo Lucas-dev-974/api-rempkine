@@ -9,48 +9,48 @@ import { AppDataSource } from "./data-source";
 import { JWTMiddleware } from "./middleware/JWT.middleware";
 import cors from "cors";
 
-// AppDataSource.initialize()
-//   .then(async () => {
-//     const app = express();
+AppDataSource.initialize()
+  .then(async () => {
+    const app = express();
 
-//     const corsOptions = {
-//       origin: process.env.CORS_ORIGIN,
-//       optionsSuccessStatus: 200,
-//     };
+    const corsOptions = {
+      origin: process.env.CORS_ORIGIN,
+      optionsSuccessStatus: 200,
+    };
 
-//     app.use(cors(corsOptions));
+    app.use(cors(corsOptions));
 
-//     const PORT = process.env.PORT || 8080;
+    const PORT = process.env.PORT || 8080;
 
-//     app.use(express.json());
-//     app.use(express.urlencoded({ extended: true }));
-//     app.use(JWTMiddleware.checkBearerToken);
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.use(JWTMiddleware.checkBearerToken);
 
-//     setRoutes(app);
+    setRoutes(app);
 
-//     app.listen(PORT, () => {
-//       console.log(`Server is running on http://localhost:${PORT}`);
-//     });
-//   })
-//   .catch((error) => console.log(error));
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => console.log(error));
 
-const app = express();
+// const app = express();
 
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN,
-  optionsSuccessStatus: 200,
-};
+// const corsOptions = {
+//   origin: process.env.CORS_ORIGIN,
+//   optionsSuccessStatus: 200,
+// };
 
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 
-const PORT = process.env.PORT || 8080;
+// const PORT = process.env.PORT || 8080;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(JWTMiddleware.checkBearerToken);
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(JWTMiddleware.checkBearerToken);
 
-setRoutes(app);
+// setRoutes(app);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server is running on http://localhost:${PORT}`);
+// });
