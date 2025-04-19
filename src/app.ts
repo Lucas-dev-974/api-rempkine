@@ -14,7 +14,7 @@ AppDataSource.initialize().then(() => {
   const app = express();
 
   const corsOptions = {
-    origin: process.env.CORS_ORIGIN,
+    origin: [process.env.CORS_ORIGIN],
     methods: "DELETE,PUT,GET,POST",
     allowedHeaders: "Content-Type,Authorization",
     optionsSuccessStatus: 200,
