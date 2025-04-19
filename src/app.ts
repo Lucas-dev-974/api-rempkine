@@ -14,9 +14,11 @@ const app = express();
 const corsOptions = {
   origin: process.env.CORS_ORIGIN,
   optionsSuccessStatus: 200,
+  methods: "DELETE,PUT,GET,POST", // Allow only specific HTTP methods
+  allowedHeaders: "Content-Type,Authorization", // Allow specific headers
 };
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
