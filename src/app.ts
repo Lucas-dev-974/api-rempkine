@@ -15,8 +15,8 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-app.use(AppDataInitialisation.init);
 app.use("*", cors(corsOptions));
+app.use(AppDataInitialisation.init);
 
 const PORT = process.env.PORT || 3001;
 
