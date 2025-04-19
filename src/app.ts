@@ -1,5 +1,4 @@
 import cors from "cors";
-import "reflect-metadata";
 import dotenv from "dotenv";
 import express from "express";
 import { setRoutes } from "./routes/index";
@@ -20,14 +19,22 @@ AppDataSource.initialize().then(() => {
     optionsSuccessStatus: 200,
   };
 
-  app.use(
-    cors({
-      allowedHeaders: ["Content-Type"],
-      origin: "*",
-      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-      preflightContinue: false,
-    })
-  );
+  // app.use(
+  //   cors({
+  //     allowedHeaders: ["Content-Type"],
+  //     origin: "*",
+  //     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  //     preflightContinue: false,
+  //   })
+  // );
+
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    next();
+  });
+
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
 
