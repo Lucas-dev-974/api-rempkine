@@ -16,7 +16,7 @@ const corsOptions = {
 };
 
 app.use(AppDataInitialisation.init);
-app.use(cors());
+app.use("*", cors(corsOptions));
 
 const PORT = process.env.PORT || 3001;
 
