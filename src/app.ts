@@ -14,7 +14,7 @@ AppDataSource.initialize().then(() => {
 
   const corsOptions = {
     origin: "*", // Autorise toutes les origines
-    methods: "DELETE,PUT,GET,POST,OPTIONS",
+    methods: "DELETE,PUT,PATCH,GET,POST,OPTIONS",
     allowedHeaders: "Content-Type,Authorization",
     optionsSuccessStatus: 200,
   };
