@@ -8,6 +8,7 @@ import { AppDataInitialisation } from "./middleware/AppDataInitialisation";
 
 dotenv.config();
 
+const PORT = process.env.PORT || 3001;
 const app = express();
 
 const corsOptions = {
@@ -15,10 +16,9 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-app.use("*", cors(corsOptions));
-app.use(AppDataInitialisation.init);
+app.use(cors(corsOptions));
 
-const PORT = process.env.PORT || 3001;
+app.use(AppDataInitialisation.init);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
