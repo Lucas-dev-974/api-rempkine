@@ -4,6 +4,10 @@ import { Request, Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import { getRepo } from "../data-source";
 import Validator from "validatorjs";
+import path from "path";
+import fs from "fs";
+
+const logFilePath = path.join(__dirname, "../Authentication.log");
 
 class AuthController {
   public async login(req: Request, res: Response): Promise<void> {
@@ -47,9 +51,21 @@ class AuthController {
         token,
       });
     } catch (error) {
-      console.log(error);
+      const detailedError = {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: (error as any).code || "UNKNOWN_ERROR",
+      };
+
+      fs.appendFileSync(
+        logFilePath,
+        detailedError.message + "|" + detailedError.code,
+        { encoding: "utf8" }
+      );
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
+        detailedError,
       });
     }
   }
@@ -122,10 +138,21 @@ class AuthController {
         token: UtilsAuthentication.generateToken({ email, id: user.id }),
       });
     } catch (error) {
-      console.log(error);
+      const detailedError = {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: (error as any).code || "UNKNOWN_ERROR",
+      };
 
+      fs.appendFileSync(
+        logFilePath,
+        detailedError.message + "|" + detailedError.code,
+        { encoding: "utf8" }
+      );
       res.status(500).send({
-        error: "Une erreur s'est produite, veuillez réesayer ultérieurement",
+        error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
+        detailedError,
       });
     }
   }
