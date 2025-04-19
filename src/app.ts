@@ -5,29 +5,32 @@ import express from "express";
 import { setRoutes } from "./routes/index";
 import { JWTMiddleware } from "./middleware/JWT.middleware";
 import { AppDataInitialisation } from "./middleware/AppDataInitialisation";
+import { AppDataSource } from "./data-source";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
-const app = express();
+AppDataSource.initialize().then(() => {
+  const PORT = process.env.PORT || 3001;
+  const app = express();
 
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN,
-  methods: "DELETE,PUT,GET,POST",
-  allowedHeaders: "Content-Type,Authorization",
-  optionsSuccessStatus: 200,
-};
+  const corsOptions = {
+    origin: process.env.CORS_ORIGIN,
+    methods: "DELETE,PUT,GET,POST",
+    allowedHeaders: "Content-Type,Authorization",
+    optionsSuccessStatus: 200,
+  };
 
-app.use(cors(corsOptions));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+  app.use(cors(corsOptions));
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
 
-app.use(AppDataInitialisation.init);
+  // app.use(AppDataInitialisation.init);
 
-app.use(JWTMiddleware.checkBearerToken);
+  app.use(JWTMiddleware.checkBearerToken);
 
-setRoutes(app);
+  setRoutes(app);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 });
