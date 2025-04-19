@@ -1,32 +1,12 @@
+import cors from "cors";
 import "reflect-metadata";
 import dotenv from "dotenv";
-dotenv.config();
-
-// import { AppDataSource } from "./database/ormconfig";
 import express from "express";
 import { setRoutes } from "./routes/index";
-import { AppDataSource } from "./data-source";
 import { JWTMiddleware } from "./middleware/JWT.middleware";
-import cors from "cors";
-
-import fs from "fs";
-import path from "path";
 import { AppDataInitialisation } from "./middleware/AppDataInitialisation";
 
-const logFilePath = path.join(__dirname, "../AppDataSource.log");
-
-// AppDataSource.initialize()
-//   .then(async () => {
-//     const logMessage = `AppDataSource initialized successfully at ${new Date().toISOString()}\n`;
-//     fs.appendFileSync(logFilePath, logMessage, { encoding: "utf8" });
-//   })
-//   .catch((error) => {
-//     const logMessage = `AppDataSource initialization failed at ${new Date().toISOString()}: ${
-//       error.message
-//     }\n`;
-//     fs.appendFileSync(logFilePath, logMessage, { encoding: "utf8" });
-//     console.log(error);
-//   });
+dotenv.config();
 
 const app = express();
 
@@ -36,7 +16,7 @@ const corsOptions = {
 };
 
 app.use(AppDataInitialisation.init);
-app.use(cors(corsOptions));
+app.use(cors());
 
 const PORT = process.env.PORT || 3001;
 
