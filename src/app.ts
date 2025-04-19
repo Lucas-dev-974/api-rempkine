@@ -13,27 +13,17 @@ const app = express();
 
 const corsOptions = {
   origin: process.env.CORS_ORIGIN,
+  methods: "DELETE,PUT,GET,POST",
+  allowedHeaders: "Content-Type,Authorization",
   optionsSuccessStatus: 200,
-  methods: "DELETE,PUT,GET,POST", // Allow only specific HTTP methods
-  allowedHeaders: "Content-Type,Authorization", // Allow specific headers
 };
-
-app.use(cors(corsOptions));
-
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "DELETE, PUT, GET, POST");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  next();
-});
-
-app.use(AppDataInitialisation.init);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
+
+app.use(AppDataInitialisation.init);
+
 app.use(JWTMiddleware.checkBearerToken);
 
 setRoutes(app);
