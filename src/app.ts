@@ -16,7 +16,7 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-app.use("*", cors());
+app.options("*", cors());
 
 app.use(AppDataInitialisation.init);
 
