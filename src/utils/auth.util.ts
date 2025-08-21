@@ -23,7 +23,7 @@ export class UtilsAuthentication {
   }
 
   static generateToken(user: UserTokenInformationType) {
-    return jwt.sign(user, this.secret, { expiresIn: "1h" });
+    return jwt.sign(user, this.secret, { expiresIn: "30d" });
   }
 
   static checkToken(token: string) {

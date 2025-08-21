@@ -1,9 +1,9 @@
-import { Entity, Column, OneToMany, ManyToOne, ManyToMany } from "typeorm";
-import { UserContract } from "./UserContract";
+import { Entity, Column, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./User";
 @Entity()
+
 export class Contract {
-  @Column({ primary: true, generated: false })
+  @PrimaryGeneratedColumn()
   id: number;
 
   @Column({ nullable: true })
@@ -35,15 +35,6 @@ export class Contract {
 
   @Column({ nullable: true })
   doneAtDate: string;
-
-  @OneToMany(() => UserContract, (userContract) => userContract.contract)
-  contractUsers: UserContract[];
-
-  @ManyToOne(() => User, (user) => user.userContracts, {
-    onDelete: "CASCADE",
-    nullable: true,
-  })
-  user: User | null;
 
   // ------------------- Replaced kinesitherapist -------------------
   @Column({ type: "enum", enum: ["male", "female"], nullable: true })
@@ -92,6 +83,9 @@ export class Contract {
   @Column({ nullable: true })
   substituteOrderDepartmentNumber: number;
 
+  @Column({ nullable: true })
+  substituteAdress: string
+
   @Column({ default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;
 
@@ -103,4 +97,8 @@ export class Contract {
 
   @Column({ nullable: true })
   substituteSignatureDataUrl: string;
+
+  // ------------------- Relations -------------------
+  @ManyToOne(() => User, (user) => user.contracts, { onDelete: "CASCADE", nullable: true })
+  user: User | null;
 }

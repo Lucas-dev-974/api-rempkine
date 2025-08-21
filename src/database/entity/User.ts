@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { UserContract } from "./UserContract";
 import { Contract } from "./Contract";
 
 @Entity()
@@ -43,8 +42,9 @@ export class User {
   @Column({ type: "enum", enum: ["male", "female"], nullable: true })
   gender: "male" | "female";
 
-  @OneToMany(() => UserContract, (userContracts) => userContracts.user)
-  userContracts: UserContract[];
+  @Column({ default: false })
+  isPublic: boolean;
+
 
   @OneToMany(() => Contract, (contract) => contract.user)
   contracts: Contract[];

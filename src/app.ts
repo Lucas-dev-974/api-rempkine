@@ -1,10 +1,9 @@
-import cors from "cors";
-import dotenv from "dotenv";
-import express from "express";
-import { setRoutes } from "./routes/index";
 import { JWTMiddleware } from "./middleware/JWT.middleware";
-import { AppDataInitialisation } from "./middleware/AppDataInitialisation";
 import { AppDataSource } from "./data-source";
+import { setRoutes } from "./routes/index";
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
@@ -13,7 +12,7 @@ AppDataSource.initialize().then(() => {
   const app = express();
 
   const corsOptions = {
-    origin: "*", // Autorise toutes les origines
+    origin: "*",
     methods: "DELETE,PUT,PATCH,GET,POST,OPTIONS",
     allowedHeaders: "Content-Type,Authorization",
     optionsSuccessStatus: 200,
@@ -23,8 +22,6 @@ AppDataSource.initialize().then(() => {
 
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
-
-  // app.use(AppDataInitialisation.init);
 
   app.use(JWTMiddleware.checkBearerToken);
 

@@ -6,6 +6,7 @@ import { getRepo } from "../data-source";
 import Validator from "validatorjs";
 import path from "path";
 import fs from "fs";
+import { logger } from "../utils/Logger";
 
 const logFilePath = path.join(__dirname, "../Authentication.log");
 
@@ -58,11 +59,7 @@ class AuthController {
         code: (error as any).code || "UNKNOWN_ERROR",
       };
 
-      fs.appendFileSync(
-        logFilePath,
-        detailedError.message + "|" + detailedError.code,
-        { encoding: "utf8" }
-      );
+      logger.write("Authentication", logger.getContentErrorMessage(error));
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
         detailedError,
@@ -144,11 +141,9 @@ class AuthController {
         name: error.name,
         code: (error as any).code || "UNKNOWN_ERROR",
       };
-
-      fs.appendFileSync(
-        logFilePath,
-        detailedError.message + "|" + detailedError.code,
-        { encoding: "utf8" }
+      logger.write(
+        "Authentication",
+        detailedError.name + detailedError.message
       );
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",

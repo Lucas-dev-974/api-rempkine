@@ -1,42 +1,75 @@
+import { Controller, ValidationSchema } from "./BaseController";
 import { Request, Response } from "express-serve-static-core";
-
-// // Extend the Request interface to include the 'files' property
-// interface MulterRequest extends Request {
-//   files?: Express.Multer.File[];
-// }
-
-import { getRepo } from "../data-source";
-import Validator from "validatorjs";
 import { Contract } from "../database/entity/Contract";
 import { User } from "../database/entity/User";
-import { In, Like } from "typeorm";
-import { UtilsAuthentication } from "../utils/auth.util";
+import { getRepo } from "../data-source";
+import { Like } from "typeorm";
 
-class ContractController {
+class ContractController extends Controller {
+  contractValidationPattern: ValidationSchema = {
+    id: { type: "string" },
+
+    authorEmail: { type: "email" },
+    authorName: { type: "string" },
+    startDate: { type: "string" },
+    endDate: { type: "string" },
+    percentReturnToSubstitute: { type: "string" },
+    percentReturnToSubstituteBeforeDate: { type: "date" },
+    nonInstallationRadius: { type: "string" },
+    conciliationCDOMK: { type: "string" },
+    doneAtLocation: { type: "string" },
+    doneAtDate: { type: "date" },
+
+    // ------------------- Replaced kinesitherapist -------------------
+    replacedGender: { type: "string" },
+    replacedEmail: { type: "email" },
+    replacedName: { type: "string" },
+    replacedBirthday: { type: "date" },
+    replacedBirthdayLocation: { type: "string" },
+    replacedOrderDepartement: { type: "string" },
+    replacedOrderDepartmentNumber: { type: "string" },
+    replacedProfessionnalAddress: { type: "string" },
+
+    // ------------------- Substitute kinesitherapist -------------------
+    substituteGender: { type: "string" },
+    substituteEmail: { type: "email" },
+    substituteName: { type: "string" },
+    substituteBirthday: { type: "date" },
+    substituteBirthdayLocation: { type: "string" },
+    substituteOrderDepartement: { type: "string" },
+    substituteOrderDepartmentNumber: { type: "string" },
+    substituteAdress: { type: "string" },
+    replacedSignatureDataUrl: { type: "string" },
+    substituteSignatureDataUrl: { type: "string" },
+  }
+
+
   public async getOne(req: Request, res: Response) {
     const { id } = req.query;
-
     if (!id) {
-      res.status(400).send("ID contrat requis");
+      res.status(400).json("Veuillez spécifié l'identifiant du contrat lors de la demande");
       return;
     }
 
-    const contractRepository = getRepo(Contract);
-    const userRepo = getRepo(User);
-
     try {
-      const contract = await contractRepository.findOneBy({ id });
+      // Récupérer l'utilisateur connecté avec ses contrats
+      const user = await getRepo(User).findOne({
+        where: { id: res.locals.user.id },
+        relations: ["contracts"]
+      });
 
-      if (!contract) {
-        res.status(404).send("Le contrat n'existe pas.");
+      if (!user) {
+        res.status(404).send("Utilisateur non trouvé.");
         return;
       }
 
-      // const user = await userRepo.findOneBy({ id: res.locals.user.id });
-      // if (user.id !== contract.user.id) {
-      //   res.status(403).send("You are not allowed to access this contract.");
-      //   return;
-      // }
+      // Vérifier si le contrat existe dans les contrats de l'utilisateur
+      const contract = user.contracts.find(contract => contract.id === parseInt(id as string));
+
+      if (!contract) {
+        res.status(404).send("Le contrat n'existe pas ou vous n'avez pas accès à ce contrat.");
+        return;
+      }
 
       res.status(200).send(contract);
     } catch (error) {
@@ -46,255 +79,64 @@ class ContractController {
   }
 
   public async list(req: Request, res: Response) {
-    const contractRepository = getRepo(Contract);
-    const userRepo = getRepo(User);
-
     try {
-      const user = await userRepo.findOne({
-        where: [{ id: res.locals.user.id }, { isPublic: true }],
+      const user = await getRepo(User).findOne({
+        where: [{ id: res.locals.user.id }],
+        relations: ["contracts"]
       });
 
-      const contracts = await contractRepository.find({
-        where: { user: user },
-      });
-
-      res.status(200).send(contracts);
+      res.status(200).send(user.contracts);
     } catch (error) {
       console.log(error);
       res.status(500).send("Error fetching contracts.");
     }
   }
 
-  public async listFromIDS(req: Request, res: Response) {
-    // todo: check contracts expiration date (3 months) if > 3: contract.public = false
-    let { ids } = req.query;
-    let finalIDS = [];
-
-    if (!ids) ids = [];
-    if (typeof ids === "string") {
-      finalIDS = ids
-        .split(",")
-        .map((id) => parseInt(id.trim()))
-        .filter((id) => !isNaN(id));
-    } else if (!Array.isArray(ids)) {
-      ids = [];
+  public create = async (req: Request, res: Response) => {
+    const validator = this.validators(req.body, this.contractValidationPattern)
+    if (validator.errors.length > 0) {
+      return res.status(400).json({ error: validator.errors });
     }
 
-    const contractRepository = getRepo(Contract);
     try {
-      const contracts = await contractRepository.findBy({ id: In(finalIDS) });
-      res.status(200).send(contracts);
+      const user = await getRepo(User).findOneBy({ id: res.locals.user.id })
+      const contract = getRepo(Contract).create({ ...validator.data as Partial<Contract> });
+      contract.user = user
+
+      await getRepo(Contract).save(contract);
+      res.status(201).json(contract);
     } catch (error) {
       console.log(error);
-      res
-        .status(500)
-        .send(
-          "Une erreur s'est produite lors de la récupération des contrats, veuillez réessayer plus tard."
-        );
+      res.status(500).json("Error creating contract.");
     }
   }
 
-  public async create(req: Request, res: Response) {
-    const validator = new Validator(req.body, {
-      authorEmail: "email",
-      authorName: "string",
-      startDate: "date",
-      endDate: "date",
-      percentReturnToSubstitute: "numeric",
-      percentReturnToSubstituteBeforeDate: "date",
-      nonInstallationRadius: "numeric",
-      conciliationCDOMK: "string",
-      doneAtLocation: "string",
-      doneAtDate: "date",
-
-      // ------------------- Replaced kinesitherapist -------------------
-      replacedGender: "string",
-      replacedEmail: "email",
-      replacedName: "string",
-      replacedBirthday: "date",
-      replacedBirthdayLocation: "string",
-      replacedOrderDepartement: "string",
-      replacedOrderDepartmentNumber: "numeric",
-      replacedProfessionnalAddress: "string",
-
-      // ------------------- Substitute kinesitherapist -------------------
-      substituteGender: "string",
-      substituteEmail: "email",
-      substituteName: "string",
-      substituteBirthday: "date",
-      substituteBirthdayLocation: "string",
-      substituteOrderDepartement: "string",
-      substituteOrderDepartmentNumber: "numeric",
-
-      replacedSignatureDataUrl: "string",
-      substituteSignatureDataUrl: "string",
-    });
-
-    if (validator.fails()) {
-      return res.status(400).send({
-        error: "Des champs obligatoires sont manquants",
-      });
+  public update = async (req: Request, res: Response) => {
+    const validator = this.validators(req.body, this.contractValidationPattern)
+    if (validator.errors.length > 0) {
+      return res.status(400).json({ error: validator.errors });
     }
 
-    const {
-      authorEmail,
-      authorName,
-      startDate,
-      endDate,
-      percentReturnToSubstitute,
-      percentReturnToSubstituteBeforeDate,
-      nonInstallationRadius,
-      conciliationCDOMK,
-      doneAtLocation,
-      doneAtDate,
-      // ------------------- Replaced kinesitherapist -------------------
-      replacedGender,
-      replacedEmail,
-      replacedName,
-      replacedBirthday,
-      replacedBirthdayLocation,
-      replacedOrderDepartement,
-      replacedOrderDepartmentNumber,
-      replacedProfessionnalAddress,
-
-      // ------------------- Substitute kinesitherapist -------------------
-      substituteGender,
-      substituteEmail,
-      substituteName,
-      substituteBirthday,
-      substituteBirthdayLocation,
-      substituteOrderDepartement,
-      substituteOrderDepartmentNumber,
-
-      replacedSignatureDataUrl,
-      substituteSignatureDataUrl,
-    } = req.body;
-
-    const contractRepository = getRepo(Contract);
-
-    let userField = {};
-    if (res.locals.user) userField = { user: res.locals.user };
+    const contractData: Partial<Contract> = validator.data as Partial<Contract>;
 
     try {
-      const id = await UtilsAuthentication.generateRandomNumber(
-        contractRepository
-      );
-      const contract = contractRepository.create({
-        id,
-        authorEmail,
-        authorName,
-        startDate,
-        endDate,
-        percentReturnToSubstitute,
-        percentReturnToSubstituteBeforeDate,
-        nonInstallationRadius,
-        conciliationCDOMK,
-        doneAtLocation,
-        doneAtDate,
-
-        replacedGender,
-        replacedEmail,
-        replacedName,
-        replacedBirthday,
-        replacedBirthdayLocation,
-        replacedOrderDepartement,
-        replacedOrderDepartmentNumber,
-        replacedProfessionnalAddress,
-
-        substituteGender,
-        substituteEmail,
-        substituteName,
-        substituteBirthday,
-        substituteBirthdayLocation,
-        substituteOrderDepartement,
-        substituteOrderDepartmentNumber,
-
-        replacedSignatureDataUrl,
-        substituteSignatureDataUrl,
-        ...userField,
+      const contract = await getRepo(Contract).findOne({
+        where: { id: contractData.id },
+        relations: ["user"]
       });
-      await contractRepository.save(contract);
-      res.status(201).send(contract);
-    } catch (error) {
-      console.log(error);
-      res.status(500).send("Error creating contract.");
-    }
-  }
-
-  public async update(req: Request, res: Response) {
-    const validator = new Validator(req.body, {
-      id: "numeric|required",
-      authorEmail: "email",
-      authorName: "string",
-      authorStatut: "string",
-      startDate: "date",
-      endDate: "date",
-      percentReturnToSubstitute: "numeric",
-      percentReturnToSubstituteBeforeDate: "date",
-      nonInstallationRadius: "numeric",
-      conciliationCDOMK: "string",
-      doneAtLocation: "string",
-      doneAtDate: "date",
-
-      // ------------------- Replaced kinesitherapist -------------------
-      replacedGender: "string",
-      replacedEmail: "email",
-      replacedName: "string",
-      replacedBirthday: "date",
-      replacedBirthdayLocation: "string",
-      replacedOrderDepartement: "string",
-      replacedOrderDepartmentNumber: "numeric",
-      replacedProfessionnalAddress: "string",
-
-      // ------------------- Substitute kinesitherapist -------------------
-      substituteGender: "string",
-      substituteEmail: "email",
-      substituteName: "string",
-      substituteBirthday: "date",
-      substituteBirthdayLocation: "string",
-      substituteOrderDepartement: "string",
-      substituteOrderDepartmentNumber: "numeric",
-
-      replacedSignatureDataUrl: "string",
-      substituteSignatureDataUrl: "string",
-    });
-
-    if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
-      return;
-    }
-
-    const contractData: Partial<Contract> = req.body as Partial<Contract>;
-
-    if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
-      return;
-    }
-    const contractRepository = getRepo(Contract);
-    const userRepository = getRepo(User);
-
-    try {
-      const contract = await contractRepository.findOneBy({
-        id: contractData.id,
-      });
-
-      const contractUser = contract.user;
-      const user = await userRepository.findOneBy({
-        id: res.locals.user.id,
-      });
-
-      if (contractUser.id !== user.id) {
-        res.status(403).send("You are not allowed to update this contract.");
-        return;
-      }
 
       if (!contract) {
         res.status(404).send("Contract not found.");
         return;
       }
 
-      const updatedContract = contractRepository.merge(contract, contractData);
-      await contractRepository.save(updatedContract);
+      if (contract.user.id !== res.locals.user.id) {
+        res.status(403).send("You are not allowed to update this contract.");
+        return;
+      }
+
+      const updatedContract = getRepo(Contract).merge(contract, contractData);
+      await getRepo(Contract).save(updatedContract);
 
       res.status(200).send(contract);
     } catch (error) {
@@ -302,74 +144,71 @@ class ContractController {
       res.status(500).send("Error deleting contract.");
     }
   }
-  public async delete(req: Request, res: Response) {
-    const validator = new Validator(req.body, {
-      id: "numeric|required",
-    });
 
-    if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
-      return;
+  public delete = async (req: Request, res: Response) => {
+    const validator = this.validators(req.params, this.contractValidationPattern)
+    if (validator.errors.length > 0) {
+      return res.status(400).json({ error: validator.errors });
     }
 
-    const contractRepository = getRepo(Contract);
-    const userRepository = getRepo(User);
-
     try {
-      const contract = await contractRepository.findOneBy({
-        id: req.body.id,
+      const contract = await getRepo(Contract).findOne({
+        where: { id: validator.data.id, },
+        relations: ["user"]
       });
 
-      const contractUser = contract.user;
-      const user = await userRepository.findOneBy({
-        id: res.locals.user.id,
-      });
-
-      if (contractUser.id !== user.id) {
-        res.status(403).send("You are not allowed to delete this contract.");
-        return;
+      if (contract.user.id !== res.locals.user.id) {
+        res.status(401).json({ message: "vous n'êtes pas l'auteur du contract seul ce dernier peux effectué des modifications" })
+        return
       }
 
-      if (!contract) {
-        res.status(404).send("Contract not found.");
-        return;
-      }
-
-      await contractRepository.remove(contract);
-
-      res.status(200).send("Contract deleted.");
+      await getRepo(Contract).remove(contract);
+      res.status(200).json("ok");
     } catch (error) {
       console.log(error);
       res.status(500).send("Error deleting contract.");
     }
   }
 
-  public async search(req: Request, res: Response) {
-    const validator = new Validator(req.query, { q: "string" });
-    if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
-      return;
-    }
+  public search = async (req: Request, res: Response) => {
+    const validator = this.validators(req.query, { q: { type: "string" } });
+    const query = validator.data.q;
 
-    const query = req.query.q;
-    let where = [];
-
-    if (query || query != "") {
-      where = [
-        { replacedName: Like(`%${query}%`) },
-        { substituteName: Like(`%${query}%`) },
-        { isPublic: true },
-      ];
-    }
     const contractRepository = getRepo(Contract);
+    const userRepository = getRepo(User);
 
     try {
-      const contracts = await contractRepository.find({ where });
+      // Récupérer l'utilisateur connecté
+      const user = await userRepository.findOneBy({
+        id: res.locals.user.id,
+      });
+
+      if (!user) {
+        res.status(404).send({ error: "Utilisateur non trouvé." });
+        return;
+      }
+
+      let contracts = [];
+
+      if (query && query !== "") {
+        // Recherche dans les contrats de l'utilisateur connecté
+        contracts = await contractRepository.find({
+          where: [
+            { user: user, replacedName: Like(`%${query}%`) },
+            { user: user, substituteName: Like(`%${query}%`) },
+          ],
+        });
+      } else {
+        // Si pas de requête, retourner tous les contrats de l'utilisateur
+        contracts = await contractRepository.find({
+          where: { user: user },
+        });
+      }
 
       res.status(200).send(contracts);
     } catch (error) {
       console.log(error);
-      res.status(500).send("Error searching for contracts.");
+      res.status(500).send({ error: "Error searching for contracts." });
     }
   }
 }
