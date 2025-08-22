@@ -1,5 +1,5 @@
-import { JWTMiddleware } from "./middleware/JWT.middleware";
 import { AppDataSource } from "./data-source";
+import { JWTMiddleware } from "./middleware/JWT.middleware";
 import { setRoutes } from "./routes/index";
 import express from "express";
 import dotenv from "dotenv";
