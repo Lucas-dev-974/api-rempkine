@@ -1,8 +1,11 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 export const AppDataSource = new DataSource({
-  type: process.env.DB_TYPE as any,
+  type: process.env.DB_TYPE as any || "postgres",
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || "5432", 10),
   username: process.env.DB_USERNAME,
@@ -11,8 +14,6 @@ export const AppDataSource = new DataSource({
   synchronize: true,
   logging: false,
   entities: [process.env.ENTITIES_FOLDER],
-  // migrations: ["src/database/migration/**/*.ts"],
-  // subscribers: ["src/database/subscriber/**/*.ts"],
 });
 
 export function getRepo(entity: any) {
