@@ -2,12 +2,13 @@
   "name": "my-express-app",
   "version": "1.0.0",
   "description": "A simple Express application built with TypeScript",
-  "main": "src/app.ts",
+  "main": "build/app.js",
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/app.ts",
+    "start": "node build/app.js",
     "dev": "nodemon",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.9",
