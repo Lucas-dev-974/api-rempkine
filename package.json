@@ -2,7 +2,7 @@
   "name": "my-express-app",
   "version": "1.0.0",
   "description": "A simple Express application built with TypeScript",
-  "main": "build/app.js",
+  "main": "src/app.ts",
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/app.ts",
