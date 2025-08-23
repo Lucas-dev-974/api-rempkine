@@ -1,23 +1,20 @@
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-PassengerAppRoot "/home/fupu3165/api.bingo-reunion.re"
+PassengerAppRoot "/home/lelu7422/api/kine-de-poche"
 PassengerBaseURI "/"
-PassengerNodejs "/home/fupu3165/nodevenv/api.bingo-reunion.re/22/bin/node"
+PassengerNodejs "/home/lelu7422/nodevenv/api/kine-de-poche/22/bin/node"
 PassengerAppType node
-PassengerStartupFile build/app.js
+PassengerStartupFile src/app.ts
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
-
-
 # DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
 <IfModule Litespeed>
-    SetEnv CORS_ORIGIN *
-    SetEnv DB_DATABASE fupu3165_rempkine
-    SetEnv DB_HOST localhost
-    SetEnv DB_PASSWORD PqNN+efDaSz@
-    SetEnv DB_PORT 3306
-    SetEnv DB_TYPE mysql
-    SetEnv DB_USERNAME fupu3165_rempuser
-    SetEnv JWT_PRIVATE pmaodjdez1234242DLAMDLAVTERTCQMFET5
-    SetEnv PORT passenger
-    SetEnv ENTITIES_FOLDER build/database/entity/**/*.js
+SetEnv DB_TYPE mysql
+SetEnv DB_HOST localhost
+SetEnv DB_PORT 3306
+SetEnv DB_USERNAME lelu7422_kinedepoche
+SetEnv DB_PASSWORD u76tuE9YWCt[
+SetEnv DB_DATABASE lelu7422_kinedepoche
+SetEnv JWT_PRIVATE pmaodjdez1234242DLAMDLAVTERTCQMFET5
+SetEnv ENTITIES_FOLDER src/database/entity/**/*.ts
+SetEnv CORS_ORIGIN *
 </IfModule>
 # DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
