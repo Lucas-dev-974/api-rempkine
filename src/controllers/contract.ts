@@ -2,7 +2,7 @@ import { Controller, ValidationSchema } from "./BaseController";
 import { Request, Response } from "express-serve-static-core";
 import { Contract } from "../database/entity/Contract";
 import { User } from "../database/entity/User";
-import { getRepo } from "../data-source";
+import { getRepo } from "../dataSource";
 import { Like } from "typeorm";
 
 class ContractController extends Controller {

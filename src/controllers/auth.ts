@@ -2,7 +2,7 @@ import { UtilsAuthentication } from "../utils/auth.util";
 import { User } from "../database/entity/User";
 import { Request, Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { getRepo } from "../data-source";
+import { getRepo } from "../dataSource";
 import Validator from "validatorjs";
 import path from "path";
 import fs from "fs";

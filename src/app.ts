@@ -2,8 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import { JWTMiddleware } from "./middleware/JWT.middleware";
-import { AppDataSource } from "./data-source";
+import { JWTMiddleware } from "./middleware/JWTMiddleware";
+import { AppDataSource } from "./dataSource";
 import { setRoutes } from "./routes/index";
 
 dotenv.config();
