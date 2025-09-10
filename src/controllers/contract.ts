@@ -9,8 +9,6 @@ class ContractController extends Controller {
   contractValidationPattern: ValidationSchema = {
     id: { type: "string" },
 
-    authorEmail: { type: "email" },
-    authorName: { type: "string" },
     startDate: { type: "string" },
     endDate: { type: "string" },
     percentReturnToSubstitute: { type: "string" },
@@ -98,7 +96,11 @@ class ContractController extends Controller {
       return res.status(400).json({ error: validator.errors });
     }
 
+    console.log("before try create contract");
+
     try {
+      console.log("try create contract");
+
       const user = await getRepo(User).findOneBy({ id: res.locals.user.id })
       const contract = getRepo(Contract).create({ ...validator.data as Partial<Contract> });
       contract.user = user

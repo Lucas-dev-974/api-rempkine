@@ -6,11 +6,6 @@ export class Contract {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
-  authorEmail: string;
-
-  @Column({ nullable: true })
-  authorName: string;
 
   @Column({ nullable: true })
   startDate: string;
@@ -84,7 +79,7 @@ export class Contract {
   substituteOrderDepartmentNumber: number;
 
   @Column({ nullable: true })
-  substituteAdress: string
+  substituteAdress: string;
 
   @Column({ default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;

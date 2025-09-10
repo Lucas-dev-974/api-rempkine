@@ -19,7 +19,7 @@ export class JWTMiddleware {
       res.locals.user = UtilsAuthentication.checkToken(token);
 
       // console.log("token: ", token);
-      console.log("user: ", res.locals.user);
+      // console.log("user: ", res.locals.user);
 
       return next();
     } else {

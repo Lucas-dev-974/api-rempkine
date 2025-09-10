@@ -1,5 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
+import { User } from "./database/entity/User";
+import { Contract } from "./database/entity/Contract";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,7 +15,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE,
   synchronize: true,
   logging: false,
-  entities: [process.env.ENTITIES_FOLDER],
+  entities: [User, Contract],
 });
 
 export function getRepo(entity: any) {

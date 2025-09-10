@@ -5,10 +5,9 @@
   "main": "build/app.js",
   "scripts": {
     "build": "tsc",
-    "start": "node build/app.js",
+    "start": "ts-node src/app.ts",
     "dev": "nodemon",
-    "typeorm": "typeorm-ts-node-commonjs",
-    "postinstall": "npm run build"
+    "typeorm": "typeorm-ts-node-commonjs"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.9",
