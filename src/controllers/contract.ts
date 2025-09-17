@@ -4,6 +4,7 @@ import { Contract } from "../database/entity/Contract";
 import { User } from "../database/entity/User";
 import { getRepo } from "../dataSource";
 import { Like } from "typeorm";
+import { logger } from "../utils/Logger";
 
 class ContractController extends Controller {
   contractValidationPattern: ValidationSchema = {
@@ -50,29 +51,26 @@ class ContractController extends Controller {
     }
 
     try {
-      // Récupérer l'utilisateur connecté avec ses contrats
       const user = await getRepo(User).findOne({
         where: { id: res.locals.user.id },
         relations: ["contracts"]
       });
 
       if (!user) {
-        res.status(404).send("Utilisateur non trouvé.");
+        res.status(404).json("Utilisateur non trouvé.");
         return;
       }
-
-      // Vérifier si le contrat existe dans les contrats de l'utilisateur
       const contract = user.contracts.find(contract => contract.id === parseInt(id as string));
 
       if (!contract) {
-        res.status(404).send("Le contrat n'existe pas ou vous n'avez pas accès à ce contrat.");
+        res.status(404).json("Le contrat n'existe pas ou vous n'avez pas accès à ce contrat.");
         return;
       }
 
-      res.status(200).send(contract);
+      res.status(200).json(contract);
     } catch (error) {
       console.log(error);
-      res.status(500).send("Une erreur s'est produite, veuillez réessayer.");
+      res.status(500).json("Une erreur s'est produite, veuillez réessayer.");
     }
   }
 
@@ -83,10 +81,10 @@ class ContractController extends Controller {
         relations: ["contracts"]
       });
 
-      res.status(200).send(user.contracts);
+      res.status(200).json(user.contracts);
     } catch (error) {
       console.log(error);
-      res.status(500).send("Error fetching contracts.");
+      res.status(500).json("Error fetching contracts.");
     }
   }
 
@@ -128,22 +126,22 @@ class ContractController extends Controller {
       });
 
       if (!contract) {
-        res.status(404).send("Contract not found.");
+        res.status(404).json("Contract not found.");
         return;
       }
 
       if (contract.user.id !== res.locals.user.id) {
-        res.status(403).send("You are not allowed to update this contract.");
+        res.status(403).json("You are not allowed to update this contract.");
         return;
       }
 
       const updatedContract = getRepo(Contract).merge(contract, contractData);
       await getRepo(Contract).save(updatedContract);
 
-      res.status(200).send(contract);
+      res.status(200).json(contract);
     } catch (error) {
       console.log(error);
-      res.status(500).send("Error deleting contract.");
+      res.status(500).json("Error deleting contract.");
     }
   }
 
@@ -168,7 +166,7 @@ class ContractController extends Controller {
       res.status(200).json("ok");
     } catch (error) {
       console.log(error);
-      res.status(500).send("Error deleting contract.");
+      res.status(500).json("Error deleting contract.");
     }
   }
 
@@ -186,7 +184,7 @@ class ContractController extends Controller {
       });
 
       if (!user) {
-        res.status(404).send({ error: "Utilisateur non trouvé." });
+        res.status(404).json({ error: "Utilisateur non trouvé." });
         return;
       }
 
@@ -207,10 +205,87 @@ class ContractController extends Controller {
         });
       }
 
-      res.status(200).send(contracts);
+      res.status(200).json(contracts);
     } catch (error) {
       console.log(error);
-      res.status(500).send({ error: "Error searching for contracts." });
+      res.status(500).json({ error: "Error searching for contracts." });
+    }
+  }
+
+  private async SyncContractsSaveLocalToBDD(localContracts: Contract[], user: User) {
+    try {
+
+      for (const contract of localContracts) {
+        if (!contract) return
+        const { id, ...contractData } = contract
+        const contract_ = getRepo(Contract).create(contractData)
+        contract_.user = user
+        await getRepo(Contract).save(contract_)
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  private async SyncContractToDelete(contractsToDelete: Contract[]) {
+    try {
+      for (const contract of contractsToDelete) {
+        if (!contract) return
+        await getRepo(Contract).delete(contract)
+      };
+    } catch (error) {
+      console.log(error);
+      throw (error)
+    }
+  }
+
+  private async SyncContractsUpdate(contracts: Contract[], user: User) {
+    console.log(contracts.length);
+
+    for (const contract of user.contracts) {
+      const contract_ = contracts.find(_contract => _contract.id == contract.id)
+      if (!contract_) return
+
+      const inCoContracDate = new Date(contract_.updatedAt)
+
+      if (contract.updatedAt < inCoContracDate) {
+        const { id, ...datas } = contract_
+        await getRepo(Contract).update({ id }, datas)
+      }
+    }
+  }
+
+  // todo review this to diff received and DTB contracts and update/delet/append contracts
+  public synchronizeContracts = async (req: Request, res: Response) => {
+    const validator = this.validators(req.body, { contracts: { type: "array" } })
+    const inComingContracts: Partial<Contract & { id: string | number; deleted?: boolean }>[] = validator.data.contracts
+
+    const isLocalID = (id: string | number) => {
+      if (typeof id === "string") {
+        if (id.startsWith("contract_")) return true
+      }
+      return false
+    }
+
+    const savedContracts = inComingContracts.filter(contract => !isLocalID(contract.id) && !contract.deleted)
+    const unSavedContracts = inComingContracts.filter(contract => isLocalID(contract.id))
+    const contractsToDelete = inComingContracts.filter(contracts => contracts.deleted)
+
+
+    try {
+      const user = await getRepo(User).findOne({ where: { id: res.locals.user.id }, relations: ["contracts"] })
+
+      await this.SyncContractToDelete(contractsToDelete as Contract[])
+      await this.SyncContractsUpdate(savedContracts as Contract[], user as User)
+      await this.SyncContractsSaveLocalToBDD(unSavedContracts as Contract[], user as User)
+
+      const refreshUser = await getRepo(User).findOne({ where: { id: res.locals.user.id }, relations: ["contracts"] })
+
+      return res.status(200).json(refreshUser.contracts)
+    } catch (error) {
+      console.log(error);
+      logger.write("Contract", logger.getContentErrorMessage(error))
+      return res.status(500).json({ error: "Une erreur est survenue veuillez contacté l'administrateur du site" })
     }
   }
 }

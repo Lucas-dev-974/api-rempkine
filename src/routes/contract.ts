@@ -11,4 +11,6 @@ ContractRouter.get("/search", contractController.search);
 ContractRouter.get("/one", contractController.getOne);
 ContractRouter.delete("/:id", contractController.delete);
 
+ContractRouter.post("/register-local-contrats", contractController.synchronizeContracts)
+
 export default ContractRouter;

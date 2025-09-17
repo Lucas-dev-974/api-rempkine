@@ -70,8 +70,13 @@ export abstract class Controller {
                 errors.push(`Le champ '${fieldName}' ne respecte pas la validation personnalisée`);
             }
 
+            console.log("all validation is OK");
+
             // Si toutes les validations passent, sanitizer et stocker la valeur
             if (errors.length === 0 || !errors.some(error => error.includes(fieldName))) {
+                console.log("in validator: ", this.validateType(value, rule.type));
+
+
                 sanitizedData[fieldName] = this.sanitizeValue(value, rule.type);
             }
         }

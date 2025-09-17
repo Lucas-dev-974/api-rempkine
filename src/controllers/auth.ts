@@ -78,7 +78,6 @@ class AuthController {
       orderNumber: "numeric|required",
       personalAdress: "string|required",
       officeAdress: "string",
-      status: "string|required",
       phoneNumber: "string|required",
       gender: "string|required",
     });

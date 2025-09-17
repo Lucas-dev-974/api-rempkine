@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "./User";
 @Entity()
 
@@ -83,6 +83,9 @@ export class Contract {
 
   @Column({ default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Column({ default: true })
   isPublic: boolean;
