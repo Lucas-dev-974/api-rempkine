@@ -5,11 +5,14 @@ import { error } from "console";
 
 export class JWTMiddleware {
   static checkBearerToken(req: Request, res: Response, next: NextFunction) {
-    // console.log("path");
+    // console.log("path", req.path);
     // console.log(req.path, req.method);
     // console.log(JWTMiddleware.isPublic(req.method, req.path));
 
-    if (JWTMiddleware.isPublic(req.method, req.path)) return next();
+    if (JWTMiddleware.isPublic(req.method, req.path)) {
+      console.log(`Route publique autorisée: ${req.method} ${req.path}`);
+      return next();
+    }
 
     const token = UtilsAuthentication.getBearerToken(req);
 
@@ -28,8 +31,21 @@ export class JWTMiddleware {
   }
 
   static isPublic(method: string, path: string) {
-    return _public.some(
-      (route) => route.method == method && route.path.includes(path)
-    );
+    return _public.some((route) => {
+      if (route.method !== method) return false;
+
+      // Si la route contient des paramètres dynamiques (avec :)
+      if (route.path.includes(':')) {
+        // Convertir la route en regex pour matcher les paramètres
+        const routePattern = route.path
+          .replace(/:[^/]+/g, '[^/]+') // Remplacer :param par [^/]+
+          .replace(/\//g, '\\/'); // Échapper les slashes
+        const regex = new RegExp(`^${routePattern}$`);
+        return regex.test(path);
+      } else {
+        // Pour les routes statiques, utiliser includes comme avant
+        return route.path.includes(path);
+      }
+    });
   }
 }
