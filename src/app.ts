@@ -78,7 +78,6 @@ class App {
   }
 
   private setupMiddleware(): void {
-    // CORS
     this.app.use(cors(AppConfig.createCorsOptions()));
 
     // JWT Middleware
