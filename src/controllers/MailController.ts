@@ -15,6 +15,7 @@ interface MailConfig {
 interface SendContractRequest {
     to: string;
     from: string;
+    body?: string
 }
 
 class MailController extends Controller {
@@ -49,7 +50,7 @@ class MailController extends Controller {
     public sendContract = async (req: Request, res: Response): Promise<void> => {
         try {
             // Validation des données d'entrée
-            const validationResult = this.validateRequest(req);
+            const validationResult = this.validateRequestSendContract(req);
             if (validationResult.error) {
                 res.status(400).json(validationResult.error);
                 return;
@@ -78,10 +79,12 @@ class MailController extends Controller {
         }
     }
 
-    private validateRequest(req: Request): { data?: SendContractRequest; error?: any } {
+    private validateRequestSendContract(req: Request): { data?: SendContractRequest; error?: any } {
         const validator = this.validators(req.body, {
-            from: { type: "string" },
-            to: { type: "string" }
+            from: { type: "string", required: true },
+            to: { type: "string", required: true },
+            body: { type: "string" }
+
         });
 
         if (validator.errors.length > 0) {
@@ -93,10 +96,10 @@ class MailController extends Controller {
 
     private prepareMailOptions(data: SendContractRequest, file?: Express.Multer.File): SendMailOptions {
         const mailOptions: SendMailOptions = {
-            from: `"Mon App" <${process.env.MAIL_USER}>`,
+            from: `"Kiné de poce" <${process.env.MAIL_USER}>`,
             to: data.to,
             subject: "Vous avez reçu un contrat de remplacement",
-            text: "Contrat de remplacement proposé. Retrouvez le contrat en pièce jointe.",
+            text: "Contrat de remplacement proposé. Retrouvez le contrat en pièce jointe. \n\n" + data.body,
         };
 
         if (file) {

@@ -1,5 +1,5 @@
-import { mailController } from "../controllers/MailContnroller";
-import express, { NextFunction, Request, Response, Router } from "express";
+import { mailController } from "../controllers/MailController";
+import express, { Router } from "express";
 import { Multer } from "multer";
 const MailRouter = (upload: Multer): Router => {
 
