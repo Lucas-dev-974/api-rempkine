@@ -1,4 +1,4 @@
-import { contractController } from "../controllers/contract";
+import { contractController } from "../controllers/ContractController";
 import express, { Router } from "express";
 
 const ContractRouter: Router = express.Router();
