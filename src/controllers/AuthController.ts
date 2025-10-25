@@ -7,10 +7,11 @@ import Validator from "validatorjs";
 import path from "path";
 import fs from "fs";
 import { logger } from "../utils/Logger";
+import { Controller } from "./BaseController";
 
 const logFilePath = path.join(__dirname, "../Authentication.log");
 
-class AuthController {
+class AuthController extends Controller {
   public async login(req: Request, res: Response): Promise<void> {
     const validator = new Validator(req.body, {
       email: "required|email",
@@ -133,6 +134,7 @@ class AuthController {
         user,
         token: UtilsAuthentication.generateToken({ email, id: user.id }),
       });
+      return
     } catch (error) {
       const detailedError = {
         message: error.message,
@@ -148,6 +150,7 @@ class AuthController {
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
         detailedError,
       });
+      return
     }
   }
 

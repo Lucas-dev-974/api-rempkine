@@ -240,8 +240,6 @@ class ContractController extends Controller {
   }
 
   private async SyncContractsUpdate(contracts: Contract[], user: User) {
-    console.log(contracts.length);
-
     for (const contract of user.contracts) {
       const contract_ = contracts.find(_contract => _contract.id == contract.id)
       if (!contract_) return
