@@ -1,9 +1,10 @@
 export interface ValidationRule {
-    type: 'string' | 'email' | 'number' | 'boolean' | 'date' | 'array' | 'object';
+    type: 'string' | 'email' | 'number' | 'boolean' | 'date' | 'array' | 'object' | 'enum' | string; // string pour supporter les types multiples comme "string|number"
     required?: boolean;
     minLength?: number;
     maxLength?: number;
     pattern?: RegExp;
+    values?: string[]; // Pour le type 'enum', liste des valeurs autorisées
     custom?: (value: any) => boolean;
 }
 
@@ -40,13 +41,17 @@ export abstract class Controller {
             }
 
             // Valider le type
-            if (!this.validateType(value, rule.type)) {
+            const typeValidation = this.validateType(value, rule.type);
+            if (!typeValidation.isValid) {
                 errors.push(`Le champ '${fieldName}' doit être de type '${rule.type}'`);
                 continue;
             }
 
-            // Valider la longueur pour les chaînes
-            if (rule.type === 'string' && typeof value === 'string') {
+            // Détecter le type réel de la valeur
+            const actualType = typeValidation.actualType || this.detectActualType(value);
+
+            // Valider la longueur pour les chaînes (si le type inclut string)
+            if (actualType === 'string' && typeof value === 'string') {
                 if (rule.minLength && value.length < rule.minLength) {
                     errors.push(`Le champ '${fieldName}' doit avoir au moins ${rule.minLength} caractères`);
                 }
@@ -60,9 +65,18 @@ export abstract class Controller {
                 errors.push(`Le champ '${fieldName}' doit être un email valide`);
             }
 
-            // Valider le pattern regex
-            if (rule.pattern && !rule.pattern.test(value)) {
+            // Valider le pattern regex (seulement pour les strings)
+            if (rule.pattern && typeof value === 'string' && !rule.pattern.test(value)) {
                 errors.push(`Le champ '${fieldName}' ne respecte pas le format attendu`);
+            }
+
+            // Valider l'enum (vérifier que la valeur fait partie de la liste autorisée)
+            if (rule.type === 'enum') {
+                if (!rule.values || !Array.isArray(rule.values)) {
+                    errors.push(`Le champ '${fieldName}' a une configuration enum invalide (valeurs manquantes)`);
+                } else if (!rule.values.includes(value)) {
+                    errors.push(`Le champ '${fieldName}' doit être l'une des valeurs suivantes: ${rule.values.join(', ')}`);
+                }
             }
 
             // Validation personnalisée
@@ -70,14 +84,10 @@ export abstract class Controller {
                 errors.push(`Le champ '${fieldName}' ne respecte pas la validation personnalisée`);
             }
 
-            console.log("all validation is OK");
-
-            // Si toutes les validations passent, sanitizer et stocker la valeur
-            if (errors.length === 0 || !errors.some(error => error.includes(fieldName))) {
-                console.log("in validator: ", this.validateType(value, rule.type));
-
-
-                sanitizedData[fieldName] = this.sanitizeValue(value, rule.type);
+            // Si toutes les validations passent pour ce champ, sanitizer et stocker la valeur
+            const hasErrorForThisField = errors.some(error => error.includes(fieldName));
+            if (!hasErrorForThisField) {
+                sanitizedData[fieldName] = this.sanitizeValue(value, rule.type, actualType);
             }
         }
 
@@ -88,25 +98,55 @@ export abstract class Controller {
         };
     }
 
-    private validateType(value: any, expectedType: string): boolean {
+    private validateType(value: any, expectedType: string): { isValid: boolean; actualType?: string } {
+        // Si le type contient un |, c'est un type multiple
+        if (expectedType.includes('|')) {
+            const types = expectedType.split('|').map(t => t.trim());
+            for (const type of types) {
+                const result = this.validateSingleType(value, type);
+                if (result.isValid) {
+                    return { isValid: true, actualType: type };
+                }
+            }
+            return { isValid: false };
+        }
+
+        // Type simple
+        return this.validateSingleType(value, expectedType);
+    }
+
+    private validateSingleType(value: any, expectedType: string): { isValid: boolean; actualType?: string } {
         switch (expectedType) {
             case 'string':
-                return typeof value === 'string' || typeof value === "number";
+                return { isValid: typeof value === 'string', actualType: 'string' };
             case 'email':
-                return typeof value === 'string' && this.isValidEmail(value);
+                return { isValid: typeof value === 'string' && this.isValidEmail(value), actualType: 'email' };
             case 'number':
-                return typeof value === 'number' && !isNaN(value);
+                return { isValid: typeof value === 'number' && !isNaN(value), actualType: 'number' };
             case 'boolean':
-                return typeof value === 'boolean';
+                return { isValid: typeof value === 'boolean', actualType: 'boolean' };
             case 'date':
-                return value instanceof Date || !isNaN(Date.parse(value));
+                return { isValid: value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value))), actualType: 'date' };
             case 'array':
-                return Array.isArray(value);
+                return { isValid: Array.isArray(value), actualType: 'array' };
             case 'object':
-                return typeof value === 'object' && value !== null && !Array.isArray(value);
+                return { isValid: typeof value === 'object' && value !== null && !Array.isArray(value), actualType: 'object' };
+            case 'enum':
+                // Pour enum, on valide juste que c'est une string, la validation des valeurs se fait ailleurs
+                return { isValid: typeof value === 'string', actualType: 'enum' };
             default:
-                return true;
+                return { isValid: true };
         }
+    }
+
+    private detectActualType(value: any): string {
+        if (typeof value === 'string') return 'string';
+        if (typeof value === 'number') return 'number';
+        if (typeof value === 'boolean') return 'boolean';
+        if (value instanceof Date) return 'date';
+        if (Array.isArray(value)) return 'array';
+        if (typeof value === 'object' && value !== null) return 'object';
+        return 'unknown';
     }
 
     private isValidEmail(email: string): boolean {
@@ -114,8 +154,11 @@ export abstract class Controller {
         return emailRegex.test(email);
     }
 
-    private sanitizeValue(value: any, type: string): any {
-        switch (type) {
+    private sanitizeValue(value: any, type: string, actualType?: string): any {
+        // Si on a un type multiple, utiliser le type réel détecté
+        const typeToUse = actualType || (type.includes('|') ? this.detectActualType(value) : type);
+
+        switch (typeToUse) {
             case 'string':
                 return this.sanitizeString(value);
             case 'email':
@@ -130,6 +173,9 @@ export abstract class Controller {
                 return this.sanitizeArray(value);
             case 'object':
                 return this.sanitizeObject(value);
+            case 'enum':
+                // Pour enum, on sanitize comme une string (trim)
+                return typeof value === 'string' ? this.sanitizeString(value) : value;
             default:
                 return value;
         }
@@ -138,20 +184,9 @@ export abstract class Controller {
     private sanitizeString(value: string): string {
         if (typeof value !== 'string') return value;
 
-        // Supprimer les caractères dangereux pour SQL
-        return value
-            .replace(/['";\\]/g, '') // Supprimer les guillemets et points-virgules
-            .replace(/--/g, '') // Supprimer les commentaires SQL
-            .replace(/\/\*/g, '') // Supprimer les commentaires SQL
-            .replace(/\*\//g, '') // Supprimer les commentaires SQL
-            .replace(/union\s+select/gi, '') // Supprimer UNION SELECT
-            .replace(/drop\s+table/gi, '') // Supprimer DROP TABLE
-            .replace(/delete\s+from/gi, '') // Supprimer DELETE FROM
-            .replace(/insert\s+into/gi, '') // Supprimer INSERT INTO
-            .replace(/update\s+set/gi, '') // Supprimer UPDATE SET
-            .replace(/create\s+table/gi, '') // Supprimer CREATE TABLE
-            .replace(/alter\s+table/gi, '') // Supprimer ALTER TABLE
-            .trim(); // Supprimer les espaces en début et fin
+        // TypeORM utilise des paramètres préparés, donc la sanitization SQL n'est pas nécessaire
+        // On se contente de trimmer les espaces en début et fin
+        return value.trim();
     }
 
     private sanitizeEmail(value: string): string {
@@ -166,15 +201,18 @@ export abstract class Controller {
         if (typeof value === 'number') return value;
         if (typeof value === 'string') {
             const parsed = parseFloat(value);
-            return isNaN(parsed) ? 0 : parsed;
+            if (isNaN(parsed)) {
+                throw new Error(`Impossible de convertir '${value}' en nombre`);
+            }
+            return parsed;
         }
-        return 0;
+        throw new Error(`Type invalide pour la conversion en nombre: ${typeof value}`);
     }
 
     private sanitizeBoolean(value: any): boolean {
         if (typeof value === 'boolean') return value;
         if (typeof value === 'string') {
-            const lower = value.toLowerCase();
+            const lower = value.toLowerCase().trim();
             return lower === 'true' || lower === '1' || lower === 'yes';
         }
         if (typeof value === 'number') {
@@ -229,6 +267,7 @@ export abstract class Controller {
                 minLength: rule.minLength,
                 maxLength: rule.maxLength,
                 pattern: rule.pattern,
+                values: rule.values,
                 custom: rule.custom
             };
         }

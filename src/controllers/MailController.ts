@@ -1,6 +1,7 @@
 import nodemailer, { Transporter, SendMailOptions } from "nodemailer";
 import { Request, Response } from "express";
 import { Controller } from "./BaseController";
+import { logger } from "../utils/Logger";
 
 interface MailConfig {
     host: string;
@@ -27,22 +28,23 @@ class MailController extends Controller {
     }
 
     private initializeTransporter(): Transporter {
+        if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
+            throw new Error("Variables d'environnement SMTP manquantes. Vérifiez SMTP_HOST, SMTP_PORT, MAIL_USER et MAIL_PASS.");
+        }
+
         const config: MailConfig = {
-            host: process.env.SMTP_HOST!,
-            port: parseInt(process.env.SMTP_PORT!),
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT, 10),
             secure: true,
             auth: {
-                user: process.env.MAIL_USER!,
-                pass: process.env.MAIL_PASS!,
+                user: process.env.MAIL_USER,
+                pass: process.env.MAIL_PASS,
             },
         };
 
-        console.log("Initialisation du transporteur mail:", {
-            host: config.host,
-            port: config.port,
-            secure: config.secure,
-            user: config.auth.user,
-        });
+        if (isNaN(config.port)) {
+            throw new Error("SMTP_PORT doit être un nombre valide.");
+        }
 
         return nodemailer.createTransport(config);
     }
@@ -71,20 +73,19 @@ class MailController extends Controller {
             });
 
         } catch (error) {
-            console.error("Erreur lors de l'envoi de l'email:", error);
+            logger.write("Mail", logger.getContentErrorMessage(error));
+            const isDevelopment = process.env.NODE_ENV !== 'production';
             res.status(500).json({
                 error: "Erreur interne du serveur",
-                details: error instanceof Error ? error.message : 'Unknown error'
+                ...(isDevelopment && { details: error instanceof Error ? error.message : 'Unknown error' })
             });
         }
     }
 
     private validateRequestSendContract(req: Request): { data?: SendContractRequest; error?: any } {
         const validator = this.validators(req.body, {
-            from: { type: "string", required: true },
-            to: { type: "string", required: true },
-            body: { type: "string" }
-
+            to: { type: "email", required: true },
+            body: { type: "string", required: false }
         });
 
         if (validator.errors.length > 0) {
@@ -120,12 +121,9 @@ class MailController extends Controller {
     }
 
     private logFileInfo(file: Express.Multer.File): void {
-        console.log("=== DEBUG FICHIER ===");
-        console.log("Nom du fichier:", file.originalname);
-        console.log("Taille du buffer:", file.buffer?.length || 0, "octets");
-        console.log("Type MIME:", file.mimetype);
-        console.log("Taille du fichier:", file.size || 0, "octets");
-        console.log("====================");
+        if (process.env.NODE_ENV === 'development') {
+            logger.write("Mail", `Fichier reçu: ${file.originalname}, Taille: ${file.buffer?.length || 0} octets, Type: ${file.mimetype}`);
+        }
     }
 
     private isValidFile(file: Express.Multer.File): boolean {
@@ -133,10 +131,8 @@ class MailController extends Controller {
     }
 
     private cleanupMemory(file?: Express.Multer.File): void {
-        if (file) {
-            console.log("Fichier traité et envoyé, nettoyage de la mémoire...");
-            delete file.buffer;
-        }
+        // Le garbage collector de Node.js gère automatiquement la mémoire
+        // Pas besoin de supprimer manuellement le buffer
     }
 
 }

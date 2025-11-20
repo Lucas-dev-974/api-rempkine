@@ -1,29 +1,38 @@
 import { UtilsAuthentication } from "../utils/auth.util";
 import { User } from "../database/entity/User";
 import { Request, Response } from "express";
-import { JwtPayload } from "jsonwebtoken";
 import { getRepo } from "../dataSource";
-import Validator from "validatorjs";
-import path from "path";
-import fs from "fs";
 import { logger } from "../utils/Logger";
-import { Controller } from "./BaseController";
-
-const logFilePath = path.join(__dirname, "../Authentication.log");
+import { Controller, ValidationSchema } from "./BaseController";
 
 class AuthController extends Controller {
-  public async login(req: Request, res: Response): Promise<void> {
-    const validator = new Validator(req.body, {
-      email: "required|email",
-      password: "string|required",
-    });
+  authValidationPattern: ValidationSchema = {
+    email: { type: "email", required: true },
+    password: { type: "string", required: true },
+  }
 
-    if (validator.fails()) {
-      res.status(400).send(validator.errors.all());
+  registerValidationPattern: ValidationSchema = {
+    email: { type: "email", required: true },
+    fullname: { type: "string", required: true },
+    password: { type: "string", required: true },
+    birthday: { type: "date", required: true },
+    bornLocation: { type: "string", required: true },
+    department: { type: "string", required: true },
+    orderNumber: { type: "number", required: true },
+    personalAdress: { type: "string", required: true },
+    officeAdress: { type: "string", required: true },
+    phoneNumber: { type: "string", required: true },
+    gender: { type: "enum", values: ["male", "female"], required: true },
+  }
+
+  public async login(req: Request, res: Response): Promise<void> {
+    const validationResult = this.validators(req.body, this.authValidationPattern);
+    if (!validationResult.isValid) {
+      res.status(400).send(validationResult.errors);
       return;
     }
 
-    const { email, password } = req.body;
+    const { email, password } = validationResult.data;
     const userRepository = getRepo(User);
 
     try {
@@ -48,8 +57,11 @@ class AuthController extends Controller {
       // Generate JWT
       const token = UtilsAuthentication.generateToken({ email, id: user.id });
 
+      // Exclure le mot de passe de la réponse
+      const { password: _, ...userWithoutPassword } = user;
+
       res.status(200).send({
-        user,
+        user: userWithoutPassword,
         token,
       });
     } catch (error) {
@@ -61,44 +73,23 @@ class AuthController extends Controller {
       };
 
       logger.write("Authentication", logger.getContentErrorMessage(error));
+
+      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
-        detailedError,
+        ...(isDevelopment && { detailedError }),
       });
     }
   }
 
-  public async register(req: Request, res: Response): Promise<void> {
-    const validator = new Validator(req.body, {
-      email: "required|email",
-      fullname: "string|required",
-      password: "string|required",
-      birthday: "date|required",
-      bornLocation: "string|required",
-      department: "string|required",
-      orderNumber: "numeric|required",
-      personalAdress: "string|required",
-      officeAdress: "string",
-      phoneNumber: "string|required",
-      gender: "string|required",
-    });
+  public register = async (req: Request, res: Response): Promise<void> => {
+    const validationResult = this.validators(req.body, this.registerValidationPattern);
+    if (!validationResult.isValid) {
+      res.status(400).send(validationResult.errors);
+      return;
+    }
 
-    if (validator.fails()) res.status(400).send(validator.errors.all());
-
-    const {
-      fullname,
-      email,
-      password,
-      birthday,
-      bornLocation,
-      department,
-      orderNumber,
-      personalAdress,
-      officeAdress,
-      status,
-      phoneNumber,
-      gender,
-    } = req.body;
+    const { email, password, fullname, birthday, bornLocation, department, orderNumber, personalAdress, officeAdress, status, phoneNumber, gender } = validationResult.data;
     const userRepository = getRepo(User);
 
     try {
@@ -130,11 +121,14 @@ class AuthController extends Controller {
       // Save the user to the database
       await userRepository.save(user);
 
+      // Exclure le mot de passe de la réponse
+      const { password: _, ...userWithoutPassword } = user;
+
       res.status(201).send({
-        user,
+        user: userWithoutPassword,
         token: UtilsAuthentication.generateToken({ email, id: user.id }),
       });
-      return
+      return;
     } catch (error) {
       const detailedError = {
         message: error.message,
@@ -142,35 +136,48 @@ class AuthController extends Controller {
         name: error.name,
         code: (error as any).code || "UNKNOWN_ERROR",
       };
-      logger.write(
-        "Authentication",
-        detailedError.name + detailedError.message
-      );
+      logger.write("Authentication", logger.getContentErrorMessage(error));
+
+      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
-        detailedError,
+        ...(isDevelopment && { detailedError }),
       });
-      return
+      return;
     }
   }
 
   public async me(req: Request, res: Response): Promise<void> {
-    const bearer = UtilsAuthentication.getBearerToken(req);
-    if (!bearer) {
-      res
-        .status(400)
-        .send({ error: "token invalide, veuillez vous reconnecté." });
-      return;
+    try {
+      // Le middleware JWT a déjà vérifié le token et mis l'utilisateur dans res.locals.user
+      if (!res.locals.user || !res.locals.user.id) {
+        res.status(401).send({ error: "Token invalide, veuillez vous reconnecter." });
+        return;
+      }
+
+      const userRepository = getRepo(User);
+      const user = await userRepository.findOne({
+        where: { id: res.locals.user.id },
+      });
+
+      if (!user) {
+        res.status(404).send({ error: "Utilisateur non trouvé." });
+        return;
+      }
+
+      // Exclure le mot de passe de la réponse
+      const { password, ...userWithoutPassword } = user;
+
+      res.status(200).send(userWithoutPassword);
+    } catch (error) {
+      logger.write("Authentication", logger.getContentErrorMessage(error));
+
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      res.status(500).send({
+        error: "Une erreur s'est produite, veuillez réessayer ultérieurement",
+        ...(isDevelopment && { detailedError: { message: (error as Error).message } }),
+      });
     }
-
-    const tokenData = UtilsAuthentication.checkToken(bearer) as JwtPayload;
-
-    const userRepository = getRepo(User);
-    const user = await userRepository.findOne({
-      where: { email: tokenData.email },
-    });
-
-    res.status(200).send(user);
   }
 }
 
