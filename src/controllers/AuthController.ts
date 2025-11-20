@@ -25,7 +25,7 @@ class AuthController extends Controller {
     gender: { type: "enum", values: ["male", "female"], required: true },
   }
 
-  public async login(req: Request, res: Response): Promise<void> {
+  public login = async (req: Request, res: Response) => {
     const validationResult = this.validators(req.body, this.authValidationPattern);
     if (!validationResult.isValid) {
       res.status(400).send(validationResult.errors);
@@ -147,7 +147,7 @@ class AuthController extends Controller {
     }
   }
 
-  public async me(req: Request, res: Response): Promise<void> {
+  public me = async (req: Request, res: Response) => {
     try {
       // Le middleware JWT a déjà vérifié le token et mis l'utilisateur dans res.locals.user
       if (!res.locals.user || !res.locals.user.id) {

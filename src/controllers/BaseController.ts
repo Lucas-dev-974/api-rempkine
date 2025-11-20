@@ -35,8 +35,8 @@ export abstract class Controller {
                 continue;
             }
 
-            // Si le champ n'est pas requis et n'est pas présent, passer au suivant
-            if (!rule.required && (value === undefined || value === null)) {
+            // Si le champ n'est pas requis et n'est pas présent (undefined, null ou chaîne vide), passer outre toute la vérification
+            if (!rule.required && (value === undefined || value === null || value === '')) {
                 continue;
             }
 
@@ -122,7 +122,18 @@ export abstract class Controller {
             case 'email':
                 return { isValid: typeof value === 'string' && this.isValidEmail(value), actualType: 'email' };
             case 'number':
-                return { isValid: typeof value === 'number' && !isNaN(value), actualType: 'number' };
+                // Si c'est déjà un number valide
+                if (typeof value === 'number' && !isNaN(value)) {
+                    return { isValid: true, actualType: 'number' };
+                }
+                // Si c'est une string, essayer de la convertir en number
+                if (typeof value === 'string') {
+                    const parsed = parseFloat(value);
+                    if (!isNaN(parsed) && isFinite(parsed)) {
+                        return { isValid: true, actualType: 'number' };
+                    }
+                }
+                return { isValid: false };
             case 'boolean':
                 return { isValid: typeof value === 'boolean', actualType: 'boolean' };
             case 'date':

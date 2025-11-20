@@ -22,17 +22,17 @@ class ContractController extends Controller {
     // ------------------- Replaced kinesitherapist -------------------
     replacedGender: { type: "enum", values: ["male", "female"] },
     replacedEmail: { type: "email" },
-    replacedName: { type: "string", required: true },
+    replacedName: { type: "string" },
     replacedBirthday: { type: "date" },
     replacedBirthdayLocation: { type: "string" },
     replacedOrderDepartement: { type: "string" },
-    replacedOrderDepartmentNumber: { type: "string" },
+    replacedOrderDepartmentNumber: { type: "string|number" },
     replacedProfessionnalAddress: { type: "string" },
 
     // ------------------- Substitute kinesitherapist -------------------
     substituteGender: { type: "enum", values: ["male", "female"] },
     substituteEmail: { type: "email" },
-    substituteName: { type: "string", required: true },
+    substituteName: { type: "string" },
     substituteBirthday: { type: "date" },
     substituteBirthdayLocation: { type: "string" },
     substituteOrderDepartement: { type: "string" },
@@ -355,16 +355,16 @@ class ContractController extends Controller {
       // Valider le contrat avec le schéma de validation
       const contractValidator = this.validators(contract, this.contractValidationPattern);
       if (contractValidator.errors.length > 0) {
-        validationErrors.push(`Contrat à l'index ${i}: ${contractValidator.errors.join(', ')}`);
+        validationErrors.push(`Sync contrat, ${contractValidator.errors.join(', ')}`);
         continue; // Ne pas traiter ce contrat
       }
 
       // Validation supplémentaire pour les valeurs numériques négatives
       if (contract.percentReturnToSubstitute !== undefined && contract.percentReturnToSubstitute < 0) {
-        validationErrors.push(`Contrat à l'index ${i}: Le champ 'percentReturnToSubstitute' ne peut pas être négatif`);
+        validationErrors.push(`Sync contrat, Le champ 'percentReturnToSubstitute' ne peut pas être négatif`);
       }
       if (contract.nonInstallationRadius !== undefined && contract.nonInstallationRadius < 0) {
-        validationErrors.push(`Contrat à l'index ${i}: Le champ 'nonInstallationRadius' ne peut pas être négatif`);
+        validationErrors.push(`Sync contrat, Le champ 'nonInstallationRadius' ne peut pas être négatif`);
       }
     }
 
