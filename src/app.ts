@@ -7,6 +7,7 @@ import path from "path";
 import { JWTMiddleware } from "./middleware/JWTMiddleware";
 import { AppDataSource } from "./dataSource";
 import { setRoutes } from "./routes/index";
+import { logger } from "./utils/Logger";
 
 // Configuration des variables d'environnement
 dotenv.config();
@@ -88,7 +89,7 @@ class App {
     try {
       // Initialisation de la base de données
       await AppDataSource.initialize();
-      console.log("Base de données initialisée avec succès");
+      logger.write("App", "Base de données initialisée avec succès\n");
 
       // Configuration des routes
       setRoutes(this.app, this.upload);
@@ -96,12 +97,19 @@ class App {
       // Démarrage du serveur
       const port = AppConfig.getPort();
       this.app.listen(port, () => {
-        console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
-        console.log(`📧 Service d'envoi d'emails activé`);
-        console.log(`📁 Gestion des fichiers configurée (max: 20MB)`);
+        logger.write("App", `Serveur démarré sur http://localhost:${port}\n`);
+        logger.write("App", "Service d'envoi d'emails activé\n");
+        logger.write("App", "Gestion des fichiers configurée (max: 20MB)\n");
+        // Afficher aussi dans la console pour le développement
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
+          console.log(`📧 Service d'envoi d'emails activé`);
+          console.log(`📁 Gestion des fichiers configurée (max: 20MB)`);
+        }
       });
 
     } catch (error) {
+      logger.write("App", logger.getContentErrorMessage(error));
       console.error("❌ Erreur lors du démarrage de l'application:", error);
       process.exit(1);
     }
