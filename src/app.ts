@@ -42,9 +42,11 @@ class AppConfig {
 
     if (corsOrigin) {
       // Si plusieurs origines sont séparées par des virgules
-      origin = corsOrigin.includes(',')
-        ? corsOrigin.split(',').map(o => o.trim())
-        : corsOrigin.trim();
+      if (corsOrigin.includes(',')) {
+        origin = corsOrigin.split(',').map(o => o.trim());
+      } else {
+        origin = corsOrigin.trim();
+      }
     } else {
       // En développement, permettre toutes les origines
       origin = "*";
@@ -53,7 +55,7 @@ class AppConfig {
     return {
       origin: origin,
       methods: ["DELETE", "PUT", "PATCH", "GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
       optionsSuccessStatus: 200,
       // Permettre les credentials si une origine spécifique est définie
       credentials: corsOrigin ? true : false,
@@ -98,9 +100,19 @@ class App {
   }
 
   private setupMiddleware(): void {
-    this.app.use(cors(AppConfig.createCorsOptions()));
+    const corsOptions = AppConfig.createCorsOptions();
 
-    // JWT Middleware
+    // Log de la configuration CORS pour le débogage
+    const corsOrigin = process.env.CORS_ORIGIN || "*";
+    logger.write("App", `Configuration CORS - CORS_ORIGIN: ${corsOrigin}\n`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔧 CORS Origin configuré: ${corsOrigin}`);
+    }
+
+    // Middleware CORS - doit être en premier, avant tout autre middleware
+    this.app.use(cors(corsOptions));
+
+    // JWT Middleware - les requêtes OPTIONS sont déjà gérées par CORS et passent dans le middleware JWT
     this.app.use(JWTMiddleware.checkBearerToken);
   }
 
