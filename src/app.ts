@@ -13,10 +13,11 @@ import { logger } from "./utils/Logger";
 dotenv.config();
 
 interface CorsOptions {
-  origin: string;
-  methods: string;
-  allowedHeaders: string;
+  origin: string | string[] | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => void);
+  methods: string | string[];
+  allowedHeaders: string | string[];
   optionsSuccessStatus: number;
+  credentials?: boolean;
 }
 
 interface MulterConfig {
@@ -33,11 +34,29 @@ class AppConfig {
   private static readonly DEFAULT_PORT = 3001;
 
   static createCorsOptions(): CorsOptions {
+    // En production, utiliser la variable d'environnement CORS_ORIGIN
+    // Si non définie, utiliser "*" pour le développement
+    const corsOrigin = process.env.CORS_ORIGIN;
+
+    let origin: string | string[] | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => void);
+
+    if (corsOrigin) {
+      // Si plusieurs origines sont séparées par des virgules
+      origin = corsOrigin.includes(',')
+        ? corsOrigin.split(',').map(o => o.trim())
+        : corsOrigin.trim();
+    } else {
+      // En développement, permettre toutes les origines
+      origin = "*";
+    }
+
     return {
-      origin: "*",
-      methods: "DELETE,PUT,PATCH,GET,POST,OPTIONS",
-      allowedHeaders: "Content-Type,Authorization",
+      origin: origin,
+      methods: ["DELETE", "PUT", "PATCH", "GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
       optionsSuccessStatus: 200,
+      // Permettre les credentials si une origine spécifique est définie
+      credentials: corsOrigin ? true : false,
     };
   }
 

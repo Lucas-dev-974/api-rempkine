@@ -4,6 +4,11 @@ import _public from "../routes/public";
 
 export class JWTMiddleware {
   static checkBearerToken(req: Request, res: Response, next: NextFunction) {
+    // Permettre toutes les requêtes OPTIONS (preflight CORS)
+    if (req.method === "OPTIONS") {
+      return next();
+    }
+
     if (JWTMiddleware.isPublic(req.method, req.path)) {
       return next();
     }
