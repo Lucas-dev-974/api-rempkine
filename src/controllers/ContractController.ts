@@ -36,7 +36,7 @@ class ContractController extends Controller {
     substituteBirthday: { type: "date" },
     substituteBirthdayLocation: { type: "string" },
     substituteOrderDepartement: { type: "string" },
-    substituteOrderDepartmentNumber: { type: "string" },
+    substituteOrderDepartmentNumber: { type: "string|number" },
     substituteAdress: { type: "string" },
     replacedSignatureDataUrl: { type: "string" },
     substituteSignatureDataUrl: { type: "string" },
