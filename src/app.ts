@@ -54,11 +54,9 @@ class AppConfig {
 
     return {
       origin: origin,
-      methods: ["DELETE", "PUT", "PATCH", "GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      methods: "DELETE,PUT,PATCH,GET,POST,OPTIONS",
+      allowedHeaders: "Content-Type,Authorization",
       optionsSuccessStatus: 200,
-      // Permettre les credentials si une origine spécifique est définie
-      credentials: corsOrigin ? true : false,
     };
   }
 
