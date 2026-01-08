@@ -19,7 +19,7 @@ class ApiTestDataContract {
       nonInstallationRadius: 10,
       conciliationCDOMK: 'CDOMK-12345',
       doneAtLocation: 'Paris',
-      doneAtDate: '2024-01-15',
+      doneAt: '2024-01-15',
       // Replaced kinesitherapist
       replacedGender: 'male',
       replacedEmail: 'replaced@example.com',
@@ -111,7 +111,7 @@ class ApiTestDataContract {
       nonInstallationRadius: 'number',
       conciliationCDOMK: 'string',
       doneAtLocation: 'string',
-      doneAtDate: 'string',
+      doneAt: 'string',
       replacedGender: 'string', // 'male' ou 'female'
       replacedEmail: 'string',
       replacedName: 'string',
