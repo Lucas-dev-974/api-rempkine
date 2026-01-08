@@ -17,7 +17,7 @@ class ContractController extends Controller {
     nonInstallationRadius: { type: "number" },
     conciliationCDOMK: { type: "string" },
     doneAtLocation: { type: "string" },
-    doneAtDate: { type: "date" },
+    doneAt: { type: "date" },
 
     // ------------------- Replaced kinesitherapist -------------------
     replacedGender: { type: "enum", values: ["male", "female"] },
@@ -404,6 +404,11 @@ class ContractController extends Controller {
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
       const isDevelopment = process.env.NODE_ENV !== 'production';
+      console.log("isDevelopment", isDevelopment);
+
+      if (isDevelopment) {
+        console.log("error-contract-synchronize", error);
+      }
       return res.status(500).json({
         error: "Une erreur est survenue, veuillez contacter l'administrateur du site",
         ...(isDevelopment && { details: (error as Error).message })

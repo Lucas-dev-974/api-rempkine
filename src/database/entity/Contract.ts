@@ -29,7 +29,7 @@ export class Contract {
   doneAtLocation: string;
 
   @Column({ nullable: true })
-  doneAtDate: string;
+  doneAt: string;
 
   // ------------------- Replaced kinesitherapist -------------------
   @Column({ type: "enum", enum: ["male", "female"], nullable: true })
