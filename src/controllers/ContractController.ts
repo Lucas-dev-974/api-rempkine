@@ -5,6 +5,7 @@ import { User } from "../database/entity/User";
 import { getRepo } from "../dataSource";
 import { Like } from "typeorm";
 import { logger } from "../utils/Logger";
+import jwt from "jsonwebtoken";
 
 class ContractController extends Controller {
   contractValidationPattern: ValidationSchema = {
@@ -40,6 +41,8 @@ class ContractController extends Controller {
     substituteAdress: { type: "string" },
     replacedSignatureDataUrl: { type: "string" },
     substituteSignatureDataUrl: { type: "string" },
+
+    token: { type: "string" },
   }
 
 
@@ -107,6 +110,11 @@ class ContractController extends Controller {
     }
   }
 
+  private generateContractToken = (contract: Contract) => {
+    const token = jwt.sign({ contractId: contract.id }, process.env.JWT_PRIVATE as string);
+    return token;
+  }
+
   public create = async (req: Request, res: Response) => {
     const validator = this.validators(req.body, this.contractValidationPattern)
 
@@ -115,20 +123,19 @@ class ContractController extends Controller {
     }
 
     try {
-      const user = await getRepo(User).findOneBy({ id: res.locals.user.id });
+      const contract = getRepo(Contract).create({ ...validator.data as Partial<Contract> });
+      const token = this.generateContractToken(contract as Contract);
+      contract.token = token;
 
-      if (!user) {
-        res.status(404).json({ error: "Utilisateur non trouvé." });
-        return;
+      if (res.locals.user) {
+        const user = await getRepo(User).findOneBy({ id: res.locals.user.id }) as User;
+        contract.user = user;
       }
 
-      const contract = getRepo(Contract).create({ ...validator.data as Partial<Contract> });
-      contract.user = user;
-
       await getRepo(Contract).save(contract);
-
       res.status(201).json(contract);
     } catch (error) {
+      console.log(error);
       logger.write("Contract", logger.getContentErrorMessage(error));
       const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
@@ -159,8 +166,7 @@ class ContractController extends Controller {
       }
 
       const contract = await getRepo(Contract).findOne({
-        where: { id: contractId },
-        relations: ["user"]
+        where: { id: contractId }
       });
 
       if (!contract) {
@@ -168,8 +174,8 @@ class ContractController extends Controller {
         return;
       }
 
-      if (!contract.user || contract.user.id !== res.locals.user.id) {
-        res.status(403).json({ error: "Vous n'êtes pas autorisé à modifier ce contrat." });
+      if (contract.token !== contractData.token) {
+        res.status(401).json({ error: "Vous n'êtes pas autorisé à modifier ce contrat." });
         return;
       }
 
@@ -188,7 +194,7 @@ class ContractController extends Controller {
   }
 
   public delete = async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id, token } = req.params;
 
     if (!id) {
       return res.status(400).json({ error: "L'identifiant du contrat est requis." });
@@ -200,19 +206,15 @@ class ContractController extends Controller {
     }
 
     try {
-      const contract = await getRepo(Contract).findOne({
-        where: { id: contractId },
-        relations: ["user"]
-      });
-
+      const contract = await getRepo(Contract).findOne({ where: { id: contractId } });
 
       if (!contract) {
         res.status(404).json({ error: "Contrat non trouvé." });
         return;
       }
 
-      if (!contract.user || contract.user.id !== res.locals.user.id) {
-        res.status(403).json({ error: "Vous n'êtes pas l'auteur du contrat. Seul ce dernier peut effectuer des modifications." });
+      if (contract.token !== token) {
+        res.status(401).json({ error: "Vous n'êtes pas autorisé à supprimer ce contrat." });
         return;
       }
 
@@ -274,147 +276,43 @@ class ContractController extends Controller {
     }
   }
 
-  private async SyncContractsSaveLocalToBDD(localContracts: Contract[], user: User) {
-    try {
-      for (const contract of localContracts) {
-        if (!contract) continue;
-        const { id, ...contractData } = contract;
-        const contract_ = getRepo(Contract).create(contractData);
 
-        contract_.user = user;
-        await getRepo(Contract).save(contract_);
-      }
-    } catch (error) {
-      logger.write("Contract", logger.getContentErrorMessage(error));
-      throw error;
-    }
-  }
 
-  private async SyncContractToDelete(contractsToDelete: Contract[]) {
-    try {
-      for (const contract of contractsToDelete) {
-        if (!contract || !contract.id) continue;
-        await getRepo(Contract).delete({ id: contract.id });
-      }
-    } catch (error) {
-      logger.write("Contract", logger.getContentErrorMessage(error));
-      throw error;
-    }
-  }
+  public listFromIDS = async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const ids_ = JSON.parse(ids);
+    let contracts: Contract[] = [];
 
-  private async SyncContractsUpdate(contracts: Contract[], user: User) {
-    try {
-      for (const contract of user.contracts) {
-        const contract_ = contracts.find(_contract => _contract.id === contract.id);
-        if (!contract_) continue;
-
-        if (!contract_.updatedAt) continue;
-
-        const incomingContractDate = new Date(contract_.updatedAt);
-        if (isNaN(incomingContractDate.getTime())) continue;
-
-        const contractDate = new Date(contract.updatedAt);
-        if (isNaN(contractDate.getTime())) continue;
-
-        if (contractDate < incomingContractDate) {
-          const { id, ...datas } = contract_;
-          await getRepo(Contract).update({ id: contract.id }, datas);
+    if (Array.isArray(ids_)) {
+      for (const id of ids_) {
+        const contract = await getRepo(Contract).findOne({ where: { id: id[0] } });
+        if (contract.token == id[1]) {
+          contracts.push(contract as Contract);
         }
       }
-    } catch (error) {
-      logger.write("Contract", logger.getContentErrorMessage(error));
-      throw error;
     }
+
+    return res.status(200).json(contracts);
   }
 
-  public synchronizeContracts = async (req: Request, res: Response) => {
-    const validator = this.validators(req.body, { contracts: { type: "array", required: true } });
-
-    if (validator.errors.length > 0) {
-      return res.status(400).json({ error: validator.errors });
-    }
-
-    const inComingContracts: Partial<Contract & { id: string | number; deleted?: boolean }>[] = validator.data?.contracts || [];
-
-    // Valider chaque contrat individuellement
-    const validationErrors: string[] = [];
-    for (let i = 0; i < inComingContracts.length; i++) {
-      const contract = inComingContracts[i];
-
-      // Vérifier que le contrat existe
-      if (!contract) {
-        validationErrors.push(`Contrat à l'index ${i}: Le contrat est null ou undefined`);
-        continue;
-      }
-
-      // Pour les contrats à supprimer, on skip la validation (seul deleted: true est nécessaire)
-      if (contract.deleted) {
-        continue;
-      }
-
-      // Valider le contrat avec le schéma de validation
-      const contractValidator = this.validators(contract, this.contractValidationPattern);
-      if (contractValidator.errors.length > 0) {
-        validationErrors.push(`Sync contrat, ${contractValidator.errors.join(', ')}`);
-        continue; // Ne pas traiter ce contrat
-      }
-
-      // Validation supplémentaire pour les valeurs numériques négatives
-      if (contract.percentReturnToSubstitute !== undefined && contract.percentReturnToSubstitute < 0) {
-        validationErrors.push(`Sync contrat, Le champ 'percentReturnToSubstitute' ne peut pas être négatif`);
-      }
-      if (contract.nonInstallationRadius !== undefined && contract.nonInstallationRadius < 0) {
-        validationErrors.push(`Sync contrat, Le champ 'nonInstallationRadius' ne peut pas être négatif`);
-      }
-    }
-
-    if (validationErrors.length > 0) {
-      return res.status(400).json({ error: validationErrors });
-    }
-
-    const isLocalID = (id: string | number | undefined) => {
-      if (typeof id === "string") {
-        if (id.startsWith("contract_")) return true;
-      }
-      return false;
-    };
-
-    const savedContracts = inComingContracts.filter(contract => contract.id && !isLocalID(contract.id) && !contract.deleted);
-    const unSavedContracts = inComingContracts.filter(contract => contract.id && isLocalID(contract.id));
-    const contractsToDelete = inComingContracts.filter(contract => contract.deleted && contract.id && !isLocalID(contract.id));
-
+  public getByToken = async (req: Request, res: Response) => {
+    const { token } = req.query;
     try {
-      const user = await getRepo(User).findOne({ where: { id: res.locals.user.id }, relations: ["contracts"] });
-
-      if (!user) {
-        return res.status(404).json({ error: "Utilisateur non trouvé." });
+      const contract = await getRepo(Contract).findOne({ where: { token: token as string } });
+      if (!contract) {
+        return res.status(404).json({ error: "Contrat non trouvé." });
       }
-
-      await this.SyncContractToDelete(contractsToDelete as Contract[]);
-      await this.SyncContractsUpdate(savedContracts as Contract[], user as User);
-      await this.SyncContractsSaveLocalToBDD(unSavedContracts as Contract[], user as User);
-
-      const refreshUser = await getRepo(User).findOne({ where: { id: res.locals.user.id }, relations: ["contracts"] });
-
-      if (!refreshUser) {
-        return res.status(404).json({ error: "Erreur lors de la récupération des contrats." });
-      }
-
-      return res.status(200).json(refreshUser.contracts || []);
+      return res.status(200).json(contract);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
       const isDevelopment = process.env.NODE_ENV !== 'production';
-      console.log("isDevelopment", isDevelopment);
-
-      if (isDevelopment) {
-        console.log("error-contract-synchronize", error);
-      }
-      return res.status(500).json({
-        error: "Une erreur est survenue, veuillez contacter l'administrateur du site",
+      res.status(500).json({
+        error: "Erreur lors de la récupération du contrat.",
         ...(isDevelopment && { details: (error as Error).message })
       });
     }
   }
+
 }
 
 export const contractController = new ContractController();

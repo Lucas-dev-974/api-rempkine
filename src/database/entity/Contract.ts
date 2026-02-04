@@ -96,6 +96,9 @@ export class Contract {
   @Column({ nullable: true })
   substituteSignatureDataUrl: string;
 
+  @Column({ nullable: true })
+  token: string;
+
   // ------------------- Relations -------------------
   @ManyToOne(() => User, (user) => user.contracts, { onDelete: "CASCADE", nullable: true })
   user: User | null;

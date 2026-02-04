@@ -7,10 +7,11 @@ ContractRouter.get("/", contractController.list);
 ContractRouter.post("/", contractController.create);
 ContractRouter.patch("/", contractController.update);
 ContractRouter.get("/search", contractController.search);
-// ContractRouter.get("/list-ids", contractController.listFromIDS);
+ContractRouter.post("/list-ids", contractController.listFromIDS);
+ContractRouter.get("/get-by-token", contractController.getByToken);
 ContractRouter.get("/one", contractController.getOne);
 ContractRouter.delete("/:id", contractController.delete);
 
-ContractRouter.post("/register-local-contrats", contractController.synchronizeContracts)
+// ContractRouter.post("/register-local-contrats", contractController.synchronizeContracts)
 
 export default ContractRouter;
