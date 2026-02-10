@@ -35,7 +35,7 @@ class MailController extends Controller {
 
     private initializeTransporter(): Transporter {
         if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
-            throw new Error("Missing SMTP environment variables. Check SMTP_HOST, SMTP_PORT, MAIL_USER and MAIL_PASS.");
+            throw new Error("Variables d'environnement SMTP manquantes. Vérifiez SMTP_HOST, SMTP_PORT, MAIL_USER et MAIL_PASS.");
         }
 
         const config: MailConfig = {
@@ -49,7 +49,7 @@ class MailController extends Controller {
         };
 
         if (isNaN(config.port)) {
-            throw new Error("SMTP_PORT must be a valid number.");
+            throw new Error("SMTP_PORT doit être un nombre valide.");
         }
 
         return nodemailer.createTransport(config);
@@ -68,7 +68,7 @@ class MailController extends Controller {
                 const contractAuth = JSON.parse(validationResult.data?.contractAuth as string);
                 const contract = await getRepo(Contract).findOne({ where: { id: contractAuth?.id } });
                 if (contract.token !== contractAuth?.token) {
-                    res.status(400).json({ error: "You are not authorized to send this email" });
+                    res.status(400).json({ error: "Vous n'êtes pas autorisé à envoyer cet e-mail" });
                     return;
                 }
 
@@ -79,12 +79,12 @@ class MailController extends Controller {
                 const info = await this.transporter.sendMail(mailOptions);
 
                 res.status(200).json({
-                    message: "Email sent successfully",
+                    message: "E-mail envoyé avec succès",
                     messageId: info.messageId
                 });
             } catch (error) {
                 logger.write("Mail", logger.getContentErrorMessage(error));
-                res.status(400).json({ error: "Error validating contract" });
+                res.status(400).json({ error: "Erreur lors de la validation du contrat" });
                 return;
             }
 
@@ -93,8 +93,8 @@ class MailController extends Controller {
             logger.write("Mail", logger.getContentErrorMessage(error));
             const isDevelopment = process.env.NODE_ENV !== 'production';
             res.status(500).json({
-                error: "Internal server error",
-                ...(isDevelopment && { details: error instanceof Error ? error.message : 'Unknown error' })
+                error: "Erreur interne du serveur",
+                ...(isDevelopment && { details: error instanceof Error ? error.message : 'Erreur inconnue' })
             });
         }
     }
@@ -119,15 +119,15 @@ class MailController extends Controller {
         const mailOptions: SendMailOptions = {
             from: `"Kiné de poce" <${process.env.MAIL_USER}>`,
             to: data.to,
-            subject: "You have received a replacement contract",
-            text: "Replacement contract proposed. Find the contract in the attachment. \n\n" + (data.body || "") + "\n\nTo sign the contract, click on the following link: " + signeBackLink,
+            subject: "Vous avez reçu un contrat de remplacement",
+            text: "Contrat de remplacement proposé. Vous trouverez le contrat en pièce jointe.\n\n" + (data.body || "") + "\n\nPour signer le contrat, cliquez sur le lien suivant : " + signeBackLink,
         };
 
         if (file) {
             this.logFileInfo(file);
 
             if (!this.isValidFile(file)) {
-                throw new Error("The received file is empty or corrupted");
+                throw new Error("Le fichier reçu est vide ou corrompu");
             }
 
             mailOptions.attachments = [{

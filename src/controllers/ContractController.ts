@@ -281,6 +281,7 @@ class ContractController extends Controller {
   public listFromIDS = async (req: Request, res: Response) => {
     const { ids } = req.body;
     const ids_ = JSON.parse(ids);
+
     let contracts: Contract[] = [];
 
     if (Array.isArray(ids_)) {
