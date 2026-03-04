@@ -28,7 +28,6 @@ jobs:
 
       - name: Build de l'application
         run: npm run build
-        
 
       - name: Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
