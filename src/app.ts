@@ -145,5 +145,6 @@ class App {
   }
 }
 
+// Démarrage de l'application
 const app = new App();
 app.start();
