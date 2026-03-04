@@ -3,7 +3,14 @@ import fs from "fs";
 
 export class logger {
   static write(filename: string, content: string) {
-    const logFilePath = path.join(__dirname, "../logs/" + filename + ".log");
+    const logsDir = path.join(__dirname, "../logs");
+
+    // S'assurer que le dossier de logs existe (utile en production après compilation)
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    const logFilePath = path.join(logsDir, `${filename}.log`);
     fs.appendFileSync(logFilePath, content, { encoding: "utf8" });
   }
 
