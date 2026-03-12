@@ -68,7 +68,6 @@ class MailController extends Controller {
                 const contractAuth = JSON.parse(validationResult.data?.contractAuth as string);
                 const contract = await getRepo(Contract).findOne({ where: { id: contractAuth?.id } });
                 if (contract.token !== contractAuth?.token) {
-                    logger.write("Mail", "token a:" + contract.token + " token b:" + contractAuth?.token);
                     res.status(400).json({ error: "Vous n'êtes pas autorisé à envoyer cet e-mail" });
                     return;
                 }
