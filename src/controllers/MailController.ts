@@ -83,8 +83,10 @@ class MailController extends Controller {
                     messageId: info.messageId
                 });
             } catch (error) {
+                logger.write("Mail", "teste");
                 logger.write("Mail", logger.getContentErrorMessage(error));
-                res.status(400).json({ error: "Erreur lors de la validation du contrat" });
+                // res.status(400).json({ error: "Erreur lors de la validation du contrat" });
+                res.status(400).json({ error });
                 return;
             }
 
