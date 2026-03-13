@@ -4,6 +4,7 @@ import { Controller } from "./BaseController";
 import { logger } from "../utils/Logger";
 import { getRepo } from "../dataSource";
 import { Contract } from "../database/entity/Contract";
+import jwt from "jsonwebtoken";
 
 interface MailConfig {
     host: string;
@@ -19,10 +20,7 @@ interface SendContractRequest {
     to: string;
     from: string;
     body?: string;
-    contractAuth: {
-        id: number;
-        token: string;
-    } | "";
+    contractData: Partial<Contract> | "";
 }
 
 class MailController extends Controller {
@@ -57,40 +55,36 @@ class MailController extends Controller {
 
     public sendContract = async (req: Request, res: Response): Promise<void> => {
         try {
-            // Validate input data
             const validationResult = this.validateRequestSendContract(req);
-            if (validationResult.error) {
+            if (validationResult.error || !validationResult.data) {
                 res.status(400).json(validationResult.error);
                 return;
             }
 
             try {
-                const contractAuth = JSON.parse(validationResult.data?.contractAuth as string);
-                const contract = await getRepo(Contract).findOne({ where: { id: contractAuth?.id } });
-                if (contract.token !== contractAuth?.token) {
+                const contractData = this.buildContractData(validationResult.data.contractData as string | undefined);
+                const { contract, created } = await this.createOrLoadContract(contractData);
+
+                if (!created && contract.token !== contractData?.token) {
                     res.status(400).json({ error: "Vous n'êtes pas autorisé à envoyer cet e-mail" });
                     return;
                 }
 
-                // Prepare email options
                 const mailOptions = this.prepareMailOptions(validationResult.data, contract.token, req.file);
-
-                // Send email
                 const info = await this.transporter.sendMail(mailOptions);
+
+                const creatingContractResponse = created ? { contract } : {};
 
                 res.status(200).json({
                     message: "E-mail envoyé avec succès",
-                    messageId: info.messageId
+                    messageId: info.messageId,
+                    creatingContract: creatingContractResponse
                 });
             } catch (error) {
-                logger.write("Mail", "teste");
                 logger.write("Mail", logger.getContentErrorMessage(error));
-                // res.status(400).json({ error: "Erreur lors de la validation du contrat" });
                 res.status(400).json({ error });
                 return;
             }
-
-
         } catch (error) {
             logger.write("Mail", logger.getContentErrorMessage(error));
             const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -105,7 +99,7 @@ class MailController extends Controller {
         const validator = this.validators(req.body, {
             to: { type: "email", required: true },
             body: { type: "string", required: false },
-            contractAuth: { type: "string", required: true }
+            contractData: { type: "string", required: false }
         });
 
         if (validator.errors.length > 0) {
@@ -113,6 +107,93 @@ class MailController extends Controller {
         }
 
         return { data: validator.data as SendContractRequest };
+    }
+
+    private buildContractData(rawContractData?: string): Partial<Contract> {
+        if (!rawContractData) {
+            throw new Error("Données de contrat manquantes");
+        }
+
+        const parsedData: Partial<Contract> = JSON.parse(rawContractData);
+        const contractData: Partial<Contract> = { ...parsedData };
+
+        const dateFields: (keyof Contract)[] = [
+            "startDate",
+            "endDate",
+            "percentReturnToSubstituteBeforeDate",
+            "doneAt",
+            "replacedBirthday",
+            "substituteBirthday",
+        ];
+
+        for (const field of dateFields) {
+            const value = (contractData as any)[field];
+
+            if (value === "" || value === null || value === undefined) {
+                delete (contractData as any)[field];
+                continue;
+            }
+
+            if (typeof value === "string") {
+                const d = new Date(value);
+                if (isNaN(d.getTime())) {
+                    delete (contractData as any)[field];
+                } else {
+                    (contractData as any)[field] = d;
+                }
+            }
+        }
+
+        const numericFields: (keyof Contract)[] = [
+            "percentReturnToSubstitute",
+            "nonInstallationRadius",
+            "replacedOrderDepartmentNumber",
+            "substituteOrderDepartmentNumber",
+        ];
+
+        for (const field of numericFields) {
+            const value = (contractData as any)[field];
+
+            if (value === "" || value === null || value === undefined) {
+                delete (contractData as any)[field];
+                continue;
+            }
+
+            const n = typeof value === "string" ? Number(value) : value;
+
+            if (typeof n !== "number" || isNaN(n)) {
+                delete (contractData as any)[field];
+            } else {
+                (contractData as any)[field] = n;
+            }
+        }
+
+        return contractData;
+    }
+
+    private async createOrLoadContract(contractData: Partial<Contract>): Promise<{ contract: Contract, created: boolean }> {
+        const contractRepo = getRepo(Contract);
+
+        if (!contractData.id || !contractData.token) {
+            const contract = contractRepo.create({
+                token: jwt.sign({ contractId: contractData?.id }, process.env.JWT_PRIVATE as string),
+                isPublic: true,
+                ...contractData
+            });
+
+            await contractRepo.save(contract);
+
+            return { contract: contract as Contract, created: true };
+        }
+
+        const existingContract = await contractRepo.findOne({ where: { id: contractData.id } });
+
+        if (!existingContract) {
+            throw new Error("Contrat introuvable");
+        }
+
+        // Explicitly cast existingContract as Contract to satisfy type checker
+        return { contract: existingContract as Contract, created: false };
     }
 
     private prepareMailOptions(data: SendContractRequest, contractToken: string, file?: Express.Multer.File): SendMailOptions {
