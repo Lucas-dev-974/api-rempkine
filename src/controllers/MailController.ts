@@ -77,20 +77,21 @@ class MailController extends Controller {
 
                 res.status(200).json({
                     message: "E-mail envoyé avec succès",
-                    messageId: info.messageId,
                     creatingContract: creatingContractResponse
                 });
             } catch (error) {
                 logger.write("Mail", logger.getContentErrorMessage(error));
-                res.status(400).json({ error });
+                res.status(400).json({
+                    error: "Erreur lors de l'envoi de l'e-mail",
+                    ...(this.isDevelopment && { details: error instanceof Error ? error.message : 'Erreur inconnue' })
+                });
                 return;
             }
         } catch (error) {
             logger.write("Mail", logger.getContentErrorMessage(error));
-            const isDevelopment = process.env.NODE_ENV !== 'production';
             res.status(500).json({
                 error: "Erreur interne du serveur",
-                ...(isDevelopment && { details: error instanceof Error ? error.message : 'Erreur inconnue' })
+                ...(this.isDevelopment && { details: error instanceof Error ? error.message : 'Erreur inconnue' })
             });
         }
     }

@@ -79,10 +79,9 @@ class ContractController extends Controller {
       res.status(200).json(contract);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Une erreur s'est produite, veuillez réessayer.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -102,10 +101,9 @@ class ContractController extends Controller {
       res.status(200).json(user.contracts || []);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la récupération des contrats.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -137,10 +135,9 @@ class ContractController extends Controller {
     } catch (error) {
       console.log(error);
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la création du contrat.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -185,10 +182,9 @@ class ContractController extends Controller {
       res.status(200).json(updatedContract);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la mise à jour du contrat.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -222,10 +218,9 @@ class ContractController extends Controller {
       res.status(200).json({ message: "Contrat supprimé avec succès." });
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la suppression du contrat.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -268,10 +263,9 @@ class ContractController extends Controller {
       res.status(200).json(contracts);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la recherche de contrats.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }
@@ -306,10 +300,9 @@ class ContractController extends Controller {
       return res.status(200).json(contract);
     } catch (error) {
       logger.write("Contract", logger.getContentErrorMessage(error));
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         error: "Erreur lors de la récupération du contrat.",
-        ...(isDevelopment && { details: (error as Error).message })
+        ...(this.isDevelopment && { details: (error as Error).message })
       });
     }
   }

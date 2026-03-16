@@ -74,10 +74,9 @@ class AuthController extends Controller {
 
       logger.write("Authentication", logger.getContentErrorMessage(error));
 
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
-        ...(isDevelopment && { detailedError }),
+        ...(this.isDevelopment && { detailedError }),
       });
     }
   }
@@ -138,10 +137,9 @@ class AuthController extends Controller {
       };
       logger.write("Authentication", logger.getContentErrorMessage(error));
 
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).send({
         error: "Une erreur c'est produite, veuillez réesayer ultérieurement",
-        ...(isDevelopment && { detailedError }),
+        ...(this.isDevelopment && { detailedError }),
       });
       return;
     }
@@ -172,10 +170,9 @@ class AuthController extends Controller {
     } catch (error) {
       logger.write("Authentication", logger.getContentErrorMessage(error));
 
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).send({
         error: "Une erreur s'est produite, veuillez réessayer ultérieurement",
-        ...(isDevelopment && { detailedError: { message: (error as Error).message } }),
+        ...(this.isDevelopment && { detailedError: { message: (error as Error).message } }),
       });
     }
   }
