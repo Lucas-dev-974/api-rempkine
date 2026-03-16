@@ -19,6 +19,9 @@ export interface ValidationResult {
 }
 
 export abstract class Controller {
+
+    public isDevelopment: boolean = process.env.MODE !== 'production';
+
     constructor() { }
 
     public validators(data: any, schema: ValidationSchema): ValidationResult {
