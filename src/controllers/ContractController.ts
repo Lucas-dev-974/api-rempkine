@@ -46,45 +46,7 @@ class ContractController extends Controller {
   }
 
 
-  public async getOne(req: Request, res: Response) {
-    const { id } = req.query;
-    if (!id) {
-      res.status(400).json("Veuillez spécifié l'identifiant du contrat lors de la demande");
-      return;
-    }
 
-    try {
-      const user = await getRepo(User).findOne({
-        where: { id: res.locals.user.id },
-        relations: ["contracts"]
-      });
-
-      if (!user) {
-        res.status(404).json("Utilisateur non trouvé.");
-        return;
-      }
-      const contractId = parseInt(id as string, 10);
-      if (isNaN(contractId)) {
-        res.status(400).json({ error: "L'identifiant du contrat doit être un nombre valide." });
-        return;
-      }
-
-      const contract = user.contracts.find(contract => contract.id === contractId);
-
-      if (!contract) {
-        res.status(404).json({ error: "Le contrat n'existe pas ou vous n'avez pas accès à ce contrat." });
-        return;
-      }
-
-      res.status(200).json(contract);
-    } catch (error) {
-      logger.write("Contract", logger.getContentErrorMessage(error));
-      res.status(500).json({
-        error: "Une erreur s'est produite, veuillez réessayer.",
-        ...(this.isDevelopment && { details: (error as Error).message })
-      });
-    }
-  }
 
   public async list(req: Request, res: Response) {
     try {
