@@ -1,8 +1,6 @@
-import express, { Request, Application } from "express";
+import express, { Application } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import multer, { FileFilterCallback, Multer } from "multer";
-import path from "path";
 
 import { JWTMiddleware } from "./middleware/JWTMiddleware";
 import { AppDataSource } from "./dataSource";
@@ -20,17 +18,7 @@ interface CorsOptions {
   credentials?: boolean;
 }
 
-interface MulterConfig {
-  storage: multer.StorageEngine;
-  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => void;
-  limits: {
-    fileSize: number;
-  };
-}
-
 class AppConfig {
-  private static readonly ALLOWED_FILE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".pdf"];
-  private static readonly MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
   private static readonly DEFAULT_PORT = 3001;
 
   static createCorsOptions(): CorsOptions {
@@ -60,28 +48,6 @@ class AppConfig {
     };
   }
 
-  static createMulterConfig(): MulterConfig {
-    return {
-      storage: multer.memoryStorage(),
-      fileFilter: this.createFileFilter(),
-      limits: {
-        fileSize: this.MAX_FILE_SIZE,
-      },
-    };
-  }
-
-  private static createFileFilter(): (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => void {
-    return (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-
-      if (this.ALLOWED_FILE_EXTENSIONS.includes(ext)) {
-        cb(null, true);
-      } else {
-        cb(new Error(`Type de fichier non autorisé. Extensions autorisées: ${this.ALLOWED_FILE_EXTENSIONS.join(", ")}`));
-      }
-    };
-  }
-
   static getPort(): number {
     return parseInt(process.env.PORT || this.DEFAULT_PORT.toString());
   }
@@ -89,11 +55,9 @@ class AppConfig {
 
 class App {
   private app: Application;
-  private upload: Multer;
 
   constructor() {
     this.app = express();
-    this.upload = multer(AppConfig.createMulterConfig());
     this.setupMiddleware();
   }
 
@@ -121,7 +85,7 @@ class App {
       logger.write("App", "Base de données initialisée avec succès\n");
 
       // Configuration des routes
-      setRoutes(this.app, this.upload);
+      setRoutes(this.app);
 
       // Démarrage du serveur
       const port = AppConfig.getPort();

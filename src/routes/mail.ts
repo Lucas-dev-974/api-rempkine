@@ -1,18 +1,13 @@
 import { mailController } from "../controllers/MailController";
 import express, { Router } from "express";
-import { Multer } from "multer";
+import { upload } from "../multerUpload";
 
+const MAX_BUG_SCREENSHOTS = 15;
 
-const MailRouter = (upload: Multer): Router => {
+const MailRouter: Router = express.Router();
 
-    const router = express.Router();
-
-    // Middleware pour parser les données du formulaire (nécessaire pour req.body)
-    router.use(express.urlencoded());
-
-    router.post("/send-contract", upload.single('contractFile'), mailController.sendContract);
-
-    return router;
-};
+MailRouter.use(express.urlencoded());
+MailRouter.post("/send-contract", upload.single("contractFile"), mailController.sendContract);
+MailRouter.post("/report-bug", upload.array("screenshots", MAX_BUG_SCREENSHOTS), mailController.reportBug);
 
 export default MailRouter;

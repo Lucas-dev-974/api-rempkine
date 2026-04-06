@@ -23,6 +23,12 @@ interface SendContractRequest {
     contractData: Partial<Contract> | "";
 }
 
+interface ReportBugRequest {
+    reportContent: string;
+}
+
+const BUG_SCREENSHOT_MIMES = new Set(["image/png", "image/jpeg", "image/jpg"]);
+
 class MailController extends Controller {
     private transporter: Transporter;
 
@@ -94,6 +100,89 @@ class MailController extends Controller {
                 ...(this.isDevelopment && { details: error instanceof Error ? error.message : 'Erreur inconnue' })
             });
         }
+    }
+
+    public reportBug = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const validationResult = this.validateRequestReportBug(req);
+            if (validationResult.error || !validationResult.data) {
+                res.status(400).json(validationResult.error);
+                return;
+            }
+
+            const files = req.files as Express.Multer.File[] | undefined;
+            if (!files || files.length === 0) {
+                res.status(400).json({ error: "Au moins une capture d'écran (PNG ou JPEG) est requise" });
+                return;
+            }
+
+            const invalidFile = files.find((f) => !this.isBugScreenshotFile(f));
+            if (invalidFile) {
+                res.status(400).json({
+                    error: "Seules les images PNG et JPEG sont acceptées pour les captures d'écran",
+                    detail: invalidFile.originalname,
+                });
+                return;
+            }
+
+            const corrupted = files.find((f) => !this.isValidFile(f));
+            if (corrupted) {
+                res.status(400).json({ error: "Un fichier reçu est vide ou corrompu" });
+                return;
+            }
+
+            const to = process.env.MAIL_BUG_REPORT_TO || process.env.MAIL_USER;
+            if (!to) {
+                res.status(500).json({ error: "Destinataire des rapports de bug non configuré (MAIL_BUG_REPORT_TO ou MAIL_USER)" });
+                return;
+            }
+
+            try {
+                const mailOptions: SendMailOptions = {
+                    from: `"Kiné de poce (bug report)" <${process.env.MAIL_USER}>`,
+                    to,
+                    subject: "[Rempkiné] Signalement de bug",
+                    text: validationResult.data.reportContent,
+                    attachments: files.map((file, index) => ({
+                        filename: file.originalname || `capture-${index + 1}.png`,
+                        content: file.buffer,
+                        contentType: file.mimetype,
+                    })),
+                };
+
+                await this.transporter.sendMail(mailOptions);
+                res.status(200).json({ message: "Signalement envoyé avec succès" });
+            } catch (error) {
+                logger.write("Mail", logger.getContentErrorMessage(error));
+                res.status(400).json({
+                    error: "Erreur lors de l'envoi du signalement",
+                    ...(this.isDevelopment && { details: error instanceof Error ? error.message : "Erreur inconnue" }),
+                });
+            }
+        } catch (error) {
+            logger.write("Mail", logger.getContentErrorMessage(error));
+            res.status(500).json({
+                error: "Erreur interne du serveur",
+                ...(this.isDevelopment && { details: error instanceof Error ? error.message : "Erreur inconnue" }),
+            });
+        }
+    };
+
+    private validateRequestReportBug = (req: Request): { data?: ReportBugRequest; error?: any } => {
+        const validator = this.validators(req.body, {
+            reportContent: { type: "string", required: true, minLength: 1 },
+        });
+
+        if (validator.errors.length > 0) {
+            return { error: validator.errors };
+        }
+
+        return { data: validator.data as ReportBugRequest };
+    }
+
+    private isBugScreenshotFile(file: Express.Multer.File): boolean {
+        const mime = (file.mimetype || "").toLowerCase();
+        return BUG_SCREENSHOT_MIMES.has(mime);
     }
 
     private validateRequestSendContract(req: Request): { data?: SendContractRequest; error?: any } {
