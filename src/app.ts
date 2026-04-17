@@ -21,6 +21,11 @@ interface CorsOptions {
 class AppConfig {
   private static readonly DEFAULT_PORT = 3001;
 
+  /** Origin header is never sent with a trailing slash; env values often mistakenly include one. */
+  private static normalizeCorsOriginEntry(value: string): string {
+    return value.trim().replace(/\/+$/, "");
+  }
+
   static createCorsOptions(): CorsOptions {
     // En production, utiliser la variable d'environnement CORS_ORIGIN
     // Si non définie, utiliser "*" pour le développement
@@ -31,9 +36,9 @@ class AppConfig {
     if (corsOrigin) {
       // Si plusieurs origines sont séparées par des virgules
       if (corsOrigin.includes(',')) {
-        origin = corsOrigin.split(',').map(o => o.trim());
+        origin = corsOrigin.split(',').map(o => AppConfig.normalizeCorsOriginEntry(o));
       } else {
-        origin = corsOrigin.trim();
+        origin = AppConfig.normalizeCorsOriginEntry(corsOrigin);
       }
     } else {
       // En développement, permettre toutes les origines
