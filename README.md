@@ -50,4 +50,5 @@ To get started with this project, follow these steps:
 - Easy to extend and customize
 
 ## License
+
 This project is licensed under the MIT License
